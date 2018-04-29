@@ -1,0 +1,36 @@
+# Codeception Test Suite Configuration
+#
+# Suite for functional tests
+# Emulate web requests and make application process them
+# Include one of framework modules (Symfony2, Yii2, Laravel5) to use it
+# Remove this suite if you don't use frameworks
+
+actor: FunctionalTester
+modules:
+    enabled:
+      - Asserts
+      - \Helper\Functional
+      - Db
+    config:
+      Db:
+        dsn: "mysql:host=mysql;dbname=test"
+        dump: 'tests/_data/mysql.sql'
+        populate: true
+        cleanup: true
+        user: 'test'
+        password: 'test'
+env:
+#  mysql:
+#    modules:
+#      config:
+#        Db:
+#          dsn: "mysql:host=mysql;dbname=test"
+#          dump: 'tests/_data/mysql.sql'
+  pgsql:
+    modules:
+      config:
+        Db:
+          dsn:  "pgsql:host=pgsql;dbname=test"
+          dump: 'tests/_data/pgsql.sql'
+
+

@@ -1,0 +1,4 @@
+/docker-compose.override.yml
+/vendor
+/tests/_output
+.idea

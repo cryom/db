@@ -1,0 +1,27 @@
+version: "3.3"
+
+services:
+  php72:
+    build:
+      dockerfile: docker/php/72/Dockerfile
+      context: .
+    volumes:
+      - .:/app
+
+  mysql:
+    image: mysql:5.7
+    ports:
+        - "127.0.0.1:3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_DATABASE: test
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+
+  pgsql:
+    image: postgres:10
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
