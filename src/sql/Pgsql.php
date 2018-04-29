@@ -16,7 +16,7 @@ use vivace\db\Reader;
 use vivace\db\sql\expression\Read;
 use vivace\db\sql\expression\Columns;
 
-class Mysql implements Driver
+class Pgsql implements Driver
 {
     const VERSION = '1';
     const OP_LITERAL = 0;
@@ -41,7 +41,6 @@ class Mysql implements Driver
      */
     public function __construct(\PDO $pdo)
     {
-//        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $this->pdo = $pdo;
     }
 
@@ -67,7 +66,7 @@ class Mysql implements Driver
 
     protected function quote(string $identifier): string
     {
-        return '`' . str_replace('.', '`.`', $identifier) . '`';
+        return '"' . str_replace('.', '"."', $identifier) . '"';
     }
 
     /**
@@ -81,7 +80,6 @@ class Mysql implements Driver
     {
         $stack = [$statement];
         $logical = null;
-
         $sql = [];
         $values = [];
         $ph = 0;
@@ -259,27 +257,74 @@ class Mysql implements Driver
 
                         if ($statement->limit) {
                             $stack[] = self::literal(' LIMIT ');
-                            if ($statement->offset) {
-                                $stack[] = self::value((int)$statement->offset);
-                                $stack[] = self::literal(', ');
-                                $stack[] = self::value((int)$statement->limit);
-                            } else {
-                                $stack[] = self::value((int)$statement->limit);
-                            }
-                        }elseif($statement->offset){
-                            $stack[] = self::literal(' LIMIT ');
+                            $stack[] = self::value((int)$statement->limit);
 
+                        } elseif ($statement->offset) {
+                            $stack[] = self::literal(' OFFSET ');
                             $stack[] = self::value((int)$statement->offset);
-                            $stack[] = self::literal(', ');
-                            $stack[] = self::literal('18446744073709551615');
                         }
 
                         break;
 
                     case Columns::class:
                         /** @var Columns $statement */
-                        $stack[] = self::literal('SHOW COLUMNS FROM ');
-                        $stack[] = self::identifier($statement->sourceName);
+                        /*
+                         * SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS data_type
+                        FROM   pg_index i
+                        JOIN   pg_attribute a ON a.attrelid = i.indrelid
+                        AND a.attnum = ANY(i.indkey)
+                        WHERE  i.indrelid = 'tablename'::regclass
+                        AND    i.indisprimary;
+                         */
+                        if (strpos($statement->sourceName, '.') !== false) {
+                            [$schema, $table] = explode('.', $statement->sourceName);
+                            $condition = "n.nspname = '$schema' AND c.relname = '$table'";
+                        } else {
+                            $condition = "c.relname = '$statement->sourceName'";
+                        }
+
+                        $stack[] = self::literal(
+                        /** @lang PostgreSQL */
+                            "SELECT  
+                            f.attnum AS number,  
+                            f.attname AS name,  
+                            f.attnum,  
+                            f.attnotnull AS notnull,  
+                            pg_catalog.format_type(f.atttypid,f.atttypmod) AS type,  
+                            CASE  
+                                WHEN p.contype = 'p' THEN 't'  
+                                ELSE 'f'  
+                            END AS primarykey,  
+                            CASE  
+                                WHEN p.contype = 'u' THEN 't'  
+                                ELSE 'f'
+                            END AS uniquekey,
+                            CASE
+                                WHEN p.contype = 'f' THEN g.relname
+                            END AS foreignkey,
+                            CASE
+                                WHEN p.contype = 'f' THEN p.confkey
+                            END AS foreignkey_fieldnum,
+                            CASE
+                                WHEN p.contype = 'f' THEN g.relname
+                            END AS foreignkey,
+                            CASE
+                                WHEN p.contype = 'f' THEN p.conkey
+                            END AS foreignkey_connnum,
+                            CASE
+                                WHEN f.atthasdef = 't' THEN d.adsrc
+                            END AS default
+                        FROM pg_attribute f  
+                            JOIN pg_class c ON c.oid = f.attrelid  
+                            JOIN pg_type t ON t.oid = f.atttypid  
+                            LEFT JOIN pg_attrdef d ON d.adrelid = c.oid AND d.adnum = f.attnum  
+                            LEFT JOIN pg_namespace n ON n.oid = c.relnamespace  
+                            LEFT JOIN pg_constraint p ON p.conrelid = c.oid AND f.attnum = ANY (p.conkey)  
+                            LEFT JOIN pg_class AS g ON p.confrelid = g.oid  
+                        WHERE c.relkind = 'r'::char  
+                            AND {$condition}  
+                            AND f.attnum > 0 ORDER BY number"
+                        );
                         break;
 
                     default:
@@ -302,9 +347,10 @@ class Mysql implements Driver
         ]);
 
         foreach ($values as $k => $v) {
-            if (is_int($v)) {
-                $stmt->bindValue($k, $v, \PDO::PARAM_INT);
-            } elseif (is_bool($v)) {
+//            if (is_int($v)) {
+//                $stmt->bindValue($k, $v, \PDO::PARAM_INT);
+//            } else
+            if (is_bool($v)) {
                 $stmt->bindValue($k, $v, \PDO::PARAM_BOOL);
             } else {
                 $stmt->bindValue($k, $v, \PDO::PARAM_STR);
@@ -430,28 +476,24 @@ class Mysql implements Driver
         $result = [];
         foreach ($data as $i => $row) {
             $field = [
-                'primaryKey' => false,
+                'primaryKey' => $row['primarykey'] === 't',
                 'index' => $i,
-                'name' => $row['Field'],
-                'nullable' => false,
+                'name' => $row['name'],
+                'nullable' => $row['notnull'] === false,
             ];
-            if ($row['Null'] === 'YES') {
-                $field['nullable'] = true;
-            }
-            if ($row['Default'] !== null || $field['nullable']) {
-                $field['default'] = $row['Default'];
+
+            if ($row['default']) {
+                if (is_numeric($row['default'])) {
+                    $field['default'] = $row['default'];
+                } elseif (preg_match('/^\'([^\'])\'::character varying$/', $row['default'], $matches)) {
+                    $field['default'] = $matches[1];
+                }
             }
 
-            switch ($row['Key']) {
-                case 'PRI':
-                    $field['primaryKey'] = true;
-                    break;
-            }
-
-            if (($pos = strpos($row['Type'], '(')) !== false) {
-                $type = substr($row['Type'], 0, $pos);
+            if (($pos = strpos($row['type'], '(')) !== false) {
+                $type = substr($row['type'], 0, $pos);
             } else {
-                $type = $row['Type'];
+                $type = $row['type'];
             }
 
             switch ($type) {
@@ -459,19 +501,23 @@ class Mysql implements Driver
                 case 'tinyint':
                 case 'smallint':
                 case 'mediumint':
-                case 'int':
+                case 'integer':
                 case 'bigint':
                     $field['type'] = 'int';
-                    $field['unsigned'] = strpos($row['Type'], 'unsigned') !== false;
+                    $field['unsigned'] = false;
                     break;
                 case 'datetime':
-                case 'timestamp':
+                case 'timestamp without time zone':
+                case 'timestamp with time zone':
                     $field['type'] = \DateTime::class;
                     break;
-                case 'float':
-                case 'double':
-                case 'decimal':
+                case 'real':
+                case 'numeric':
+                case 'double precision':
                     $field['type'] = 'float';
+                    break;
+                case 'boolean':
+                    $field['type'] = 'boolean';
                     break;
                 default:
                     $field['type'] = 'string';

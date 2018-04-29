@@ -9,7 +9,7 @@
 namespace vivace\db\sql\expression;
 
 
-final class Schema implements Read
+final class Columns implements Read
 {
     /**
      * @var string

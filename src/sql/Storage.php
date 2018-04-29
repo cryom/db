@@ -12,7 +12,7 @@ namespace vivace\db\sql;
 use vivace\db\Reader;
 use vivace\db\Relation\Many;
 use vivace\db\Relation\Single;
-use vivace\db\sql\expression\Schema;
+use vivace\db\sql\expression\Columns;
 
 class Storage implements \vivace\db\Storage
 {
@@ -101,7 +101,7 @@ class Storage implements \vivace\db\Storage
             return self::$meta[$sourceName];
         }
 
-        $result = $this->driver()->read(new Schema($sourceName));
+        $result = $this->driver()->read(new Columns($sourceName));
         $map = [];
         foreach ($result as $key => $value) {
             $map[$value['name']] = $value;

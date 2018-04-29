@@ -13,19 +13,19 @@ modules:
       - Db
     config:
       Db:
-        dsn: "mysql:host=mysql;dbname=test"
-        dump: 'tests/_data/mysql.sql'
         populate: true
         cleanup: true
         user: 'test'
         password: 'test'
+        dsn: "mysql:host=mysql;dbname=test"
+        dump: 'tests/_data/mysql.sql'
 env:
-#  mysql:
-#    modules:
-#      config:
-#        Db:
-#          dsn: "mysql:host=mysql;dbname=test"
-#          dump: 'tests/_data/mysql.sql'
+  mysql:
+    modules:
+      config:
+        Db:
+          dsn: "mysql:host=mysql;dbname=test"
+          dump: 'tests/_data/mysql.sql'
   pgsql:
     modules:
       config:

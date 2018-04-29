@@ -4,8 +4,12 @@ use \vivace\db\sql;
 
 class StorageCest
 {
+    /** @var \vivace\db\Storage[] */
+    protected $storage;
+
     public function _before(FunctionalTester $I)
     {
+
     }
 
     public function _after(FunctionalTester $I)
@@ -20,7 +24,7 @@ class StorageCest
      * @throws \Codeception\Exception\ModuleException
      * @throws \Exception
      */
-    public function case1(FunctionalTester $I)
+    public function case1(FunctionalTester $I, \Codeception\Scenario $scenario)
     {
         $I->wantTo('Fetch one `bar`');
 
@@ -179,7 +183,7 @@ class StorageCest
 
     public function case7(FunctionalTester $I)
     {
-        $I->wantTo('Fetch one `bar`');
+        $I->wantTo('Check float pointing values');
 
         $bar = $I->createStorage('foo');
         $data = $bar->filter(['id' => 1])->typecast()->fetch()->one();
