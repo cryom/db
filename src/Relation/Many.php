@@ -17,6 +17,7 @@ use vivace\db\Storage;
 abstract class Many implements Filtrable, Relation
 {
     use mixin\Filter;
+    use mixin\Projection;
     /**
      * @var \vivace\db\Storage
      */
@@ -26,7 +27,12 @@ abstract class Many implements Filtrable, Relation
      */
     protected $key;
 
-
+    /**
+     * Many constructor.
+     *
+     * @param \vivace\db\Storage $storage
+     * @param array $key Assoc array, when key is foreign key and value is primary key from this storage
+     */
     public function __construct(Storage $storage, array $key)
     {
         $this->storage = $storage;
@@ -38,8 +44,13 @@ abstract class Many implements Filtrable, Relation
         $map = [];
         $simpleKey = count($this->key) == 1;
         $finder = $this->storage->find();
+
         if ($this->filter) {
             $finder = $finder->filter($this->filter);
+        }
+
+        if ($this->projection) {
+            $finder = $finder->projection($this->projection);
         }
 
         if ($simpleKey) {

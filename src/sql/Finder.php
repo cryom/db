@@ -89,18 +89,17 @@ class Finder implements \vivace\db\Finder
     }
 
     /**
+     * @param \vivace\db\Schema $schema
      * @param array $filter
      *
      * @return array
      * @throws \Exception
      */
-    protected function normalizeFilter(array $filter): array
+    protected function normalizeFilter(Schema $schema, array $filter): array
     {
         if (!$filter) {
             return $filter;
         }
-
-        $schema = $this->storage()->schema();
 
         if (!isset($filter[0])) {
             $normalized = [];
@@ -127,7 +126,7 @@ class Finder implements \vivace\db\Finder
             case 'or':
                 $cnt = count($filter);
                 for ($i = 1; $i < $cnt; $i++) {
-                    $filter[$i] = $this->normalizeFilter($filter[$i]);
+                    $filter[$i] = $this->normalizeFilter($schema, $filter[$i]);
                 }
                 break;
             case 'in':
@@ -149,14 +148,13 @@ class Finder implements \vivace\db\Finder
     }
 
     /**
+     * @param \vivace\db\Schema $schema
      * @param array $sort
      *
      * @return array
-     * @throws \Exception
      */
-    protected function normalizeSort(array $sort): array
+    protected function normalizeSort(Schema $schema, array $sort): array
     {
-        $schema = $this->storage()->schema();
         $new = [];
         foreach ($sort as $key => $value) {
             $key = $schema->get($key)->getName();
@@ -174,25 +172,43 @@ class Finder implements \vivace\db\Finder
     {
         $schema = $this->storage()->schema();
         $query = new Select($schema->getName());
+        $aliases = [];
+        $relations = [];
+        foreach ($this->projection as $name => $value) {
+            if (is_string($value)) {
+                $aliases[$name] = $value;
+            } elseif ($value instanceof Relation) {
+                $relations[$name] = $value;
+            }
+        }
+
+        if ($aliases) {
+            $schema = clone  $schema;
+            foreach ($aliases as $alias => $name) {
+                $query->projection[] = '*';
+                $query->projection[$name] = $alias;
+                $schema->set($alias, $name);
+            }
+        }
+
         if ($this->filter) {
-            $query->where = $this->normalizeFilter($this->filter);
+            $query->where = $this->normalizeFilter($schema, $this->filter);
         }
         if ($this->sort) {
-            $query->order = $this->normalizeSort($this->sort);
+            $query->order = $this->normalizeSort($schema, $this->sort);
         }
 
         $query->limit = $this->limit;
         $query->offset = $this->skip;
 
         $reader = $this->storage()->driver()->read($query);
-        $reader = new \vivace\db\sql\Reader($reader, $schema, $this->storage()->driver());
-        $relations = array_filter($this->projection, function ($value) {
-            return $value instanceof Relation;
-        });
 
         if ($relations) {
             $reader = new Binder($reader, 500, $relations);
         }
+
+        $reader = new \vivace\db\sql\Reader($reader, $schema, $this->storage()->driver());
+
 
         return $reader;
     }

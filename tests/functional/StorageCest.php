@@ -184,20 +184,20 @@ class StorageCest
      * @param \FunctionalTester $I
      *
      * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
      */
     public function case7(FunctionalTester $I)
     {
-        $I->wantTo('Check typecasting');
+        $I->wantTo('Check float types');
 
         $bar = $I->createStorage('foo');
         $data = $bar->filter(['id' => 1])->fetch()->one();
 
-        $I->assertEquals(1, $data['id']);
-        $I->assertEquals('foo_1', $data['name']);
-        $I->assertEquals(0.1, $data['float']);
-        $I->assertEquals(0.2, $data['double']);
-        $I->assertEquals(0.3, $data['decimal']);
-//        $I->assertEquals(DateTime::createFromFormat('Y-m-d H:i:s', '2011-01-01 22:17:17'), $data['datetime']);
+        $I->assertSame(1, $data['id']);
+        $I->assertSame('foo_1', $data['name']);
+        $I->assertSame(0.1, $data['float']);
+        $I->assertSame(0.2, $data['double']);
+        $I->assertSame(0.3, $data['decimal']);
 
     }
 
@@ -219,7 +219,7 @@ class StorageCest
 
         $item = $storage->fetch()->one();
 
-        $I->assertEquals(1, $item['smallint']);
+        $I->assertSame(1, $item['smallint']);
         $I->assertSame(2, $item['integer']);
         $I->assertSame(3, $item['bigint']);
         $I->assertSame(4.1, $item['decimal']);
@@ -239,5 +239,37 @@ class StorageCest
         $I->assertSame('00:00:35', $item['interval']);
         $I->assertSame(false, $item['boolean']);
         $I->assertSame('two', $item['enum']);
+    }
+
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
+     */
+    public function aliases(FunctionalTester $I)
+    {
+        $I->wantTo('Check aliases');
+
+        $foo = $I->createStorage('foo');
+        $bar = $I->createStorage('bar');
+        $baz = $I->createStorage('baz');
+
+        $finder = $foo->projection([
+            'refBarID' => 'bar_id',
+            'bar' => $bar->single(['refBarID' => 'barID'])->projection([
+                'barID' => 'id',
+                'refBazID' => 'baz_id',
+                'baz' => $baz->many(['refBazID' => 'bazID'])->projection([
+                    'bazID' => 'id'
+                ])
+            ])
+        ]);
+
+        $item = $finder->filter(['refBarID' => 2])->limit(1)->fetch()->one();
+
+        $I->assertSame(2, $item['refBarID']);
+        $I->assertSame(2, $item['bar']['barID']);
+        $I->assertSame(2, $item['bar']['baz'][0]['bazID']);
     }
 }

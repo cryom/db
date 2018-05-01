@@ -170,7 +170,11 @@ final class Pgsql extends Driver
                     $coma = true;
                 }
                 if (is_int($key)) {
-                    self::identifier($stack, $val);
+                    if ($val === '*') {
+                        self::literal($stack, $val);
+                    } else {
+                        self::identifier($stack, $val);
+                    }
                 } else {
                     if (is_string($val)) {
                         if ($val === '*') {
