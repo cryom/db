@@ -6,7 +6,7 @@
  * Time: 0:46
  */
 
-namespace vivace\db\sql\expression;
+namespace vivace\db\sql\statement;
 
 
 interface Read extends Query

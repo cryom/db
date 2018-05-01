@@ -6,7 +6,7 @@
  * Time: 17:51
  */
 
-namespace vivace\db\sql\expression;
+namespace vivace\db\sql\statement;
 
 
 final class Update

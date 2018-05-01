@@ -29,13 +29,13 @@ class StorageCest
         $I->wantTo('Fetch one `bar`');
 
         $bar = $I->createStorage('bar');
-        $data = $bar->filter(['id' => 1])->typecast()->fetch()->one();
+        $data = $bar->filter(['id' => 1])->fetch()->one();
 
         $I->assertInternalType('array', $data);
         $I->assertArrayHasKey('name', $data);
         $I->assertArrayHasKey('id', $data);
 
-        $I->assertSame(1, $data['id']);
+        $I->assertEquals(1, $data['id']);
         $I->assertEquals('bar_1', $data['name']);
     }
 
@@ -50,9 +50,8 @@ class StorageCest
         $I->wantTo('Fetch two `bar` by id');
 
         $bar = $I->createStorage('bar');
-        $finder = $bar->filter(['id' => [1, 2]]);
+        $finder = $bar->filter(['in', 'id', [1, 2]]);
         $finder = $finder->sort(['id' => -1]);
-        $finder = $finder->typecast();
 
         $data = $finder->fetch();
         $data = iterator_to_array($data);
@@ -61,14 +60,14 @@ class StorageCest
         $I->assertInternalType('array', $data[0]);
         $I->assertArrayHasKey('name', $data[0]);
         $I->assertArrayHasKey('id', $data[0]);
-        $I->assertSame(2, $data[0]['id']);
+        $I->assertEquals(2, $data[0]['id']);
         $I->assertEquals('bar_2', $data[0]['name']);
 
         $I->assertArrayHasKey(1, $data);
         $I->assertInternalType('array', $data[1]);
         $I->assertArrayHasKey('name', $data[1]);
         $I->assertArrayHasKey('id', $data[1]);
-        $I->assertSame(1, $data[1]['id']);
+        $I->assertEquals(1, $data[1]['id']);
         $I->assertEquals('bar_1', $data[1]['name']);
     }
 
@@ -107,7 +106,7 @@ class StorageCest
             'foo' => $foo->single(['id' => 'bar_id']),
             'baz' => $baz->single(['baz_id' => 'id'])
         ]);
-        $result = $bar->filter(['id' => [1, 2, 3]])->fetch()->all();
+        $result = $bar->filter(['in', 'id', [1, 2, 3]])->fetch()->all();
 
         $I->assertCount(3, $result);
         $I->assertArrayHasKey('foo', $result[0]);
@@ -136,7 +135,7 @@ class StorageCest
             'foo' => $foo->many(['id' => 'bar_id']),
             'baz' => $baz->many(['baz_id' => 'id'])
         ]);
-        $result = $bar->filter(['=', 'id', [1, 2, 3]])->fetch()->all();
+        $result = $bar->filter(['in', 'id', [1, 2, 3]])->fetch()->all();
 
         $I->assertCount(3, $result);
         $I->assertArrayHasKey('foo', $result[0]);
@@ -170,30 +169,75 @@ class StorageCest
         $finder = $finder->skip(1);
         $finder = $finder->sort(['order' => 1]);
 
-        $result = $finder->typecast()->fetch();
+        $result = $finder->fetch();
 
         $data = iterator_to_array($result);
 
         $I->assertCount(3, $data);
-//        $I->assertSame('5', $data[0]['type']);
-        $I->assertSame('6', $data[0]['type']);
-        $I->assertSame('7', $data[1]['type']);
-        $I->assertSame('4', $data[2]['type']);
+//        $I->assertEquals('5', $data[0]['type']);
+        $I->assertEquals('6', $data[0]['type']);
+        $I->assertEquals('7', $data[1]['type']);
+        $I->assertEquals('4', $data[2]['type']);
     }
 
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     */
     public function case7(FunctionalTester $I)
     {
-        $I->wantTo('Check float pointing values');
+        $I->wantTo('Check typecasting');
 
         $bar = $I->createStorage('foo');
-        $data = $bar->filter(['id' => 1])->typecast()->fetch()->one();
+        $data = $bar->filter(['id' => 1])->fetch()->one();
 
-        $I->assertSame(1, $data['id']);
+        $I->assertEquals(1, $data['id']);
         $I->assertEquals('foo_1', $data['name']);
-        $I->assertSame(0.1, $data['float']);
-        $I->assertSame(0.2, $data['double']);
-        $I->assertSame(0.3, $data['decimal']);
-        $I->assertEquals(DateTime::createFromFormat('Y-m-d H:i:s', '2011-01-01 22:17:17'), $data['datetime']);
+        $I->assertEquals(0.1, $data['float']);
+        $I->assertEquals(0.2, $data['double']);
+        $I->assertEquals(0.3, $data['decimal']);
+//        $I->assertEquals(DateTime::createFromFormat('Y-m-d H:i:s', '2011-01-01 22:17:17'), $data['datetime']);
 
+    }
+
+    public function typecastMysql(FunctionalTester $I)
+    {
+
+    }
+
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @env pgsql
+     */
+    public function typecastPgsql(FunctionalTester $I)
+    {
+        $I->wantTo('Check typecasting');
+        $storage = $I->createStorage('type_table');
+
+        $item = $storage->fetch()->one();
+
+        $I->assertEquals(1, $item['smallint']);
+        $I->assertSame(2, $item['integer']);
+        $I->assertSame(3, $item['bigint']);
+        $I->assertSame(4.1, $item['decimal']);
+        $I->assertSame(4.2, $item['numeric']);
+        $I->assertSame(4.3, $item['real']);
+        $I->assertSame(4.4, $item['double_precission']);
+        $I->assertSame('$10.30', $item['money']);
+        $I->assertSame('char_var', $item['char_var']);
+        $I->assertSame(str_pad('char', 10, ' '), $item['char']);
+        $I->assertSame('text', $item['text']);
+        $I->assertInternalType(\PHPUnit\Framework\Constraint\IsType::TYPE_RESOURCE, $item['bytea']);
+        $I->assertEquals(new DateTime('2017-01-01 22:01:02'), $item['timestamp']);
+        $I->assertEquals(new DateTime('2017-01-01 22:01:03'), $item['timestamptz']);
+        $I->assertSame('2017-01-01', $item['date']);
+        $I->assertSame('22:01:02', $item['time']);
+        $I->assertSame('22:01:03+00', $item['timetz']);
+        $I->assertSame('00:00:35', $item['interval']);
+        $I->assertSame(false, $item['boolean']);
+        $I->assertSame('two', $item['enum']);
     }
 }

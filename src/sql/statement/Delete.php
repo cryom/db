@@ -6,7 +6,7 @@
  * Time: 15:44
  */
 
-namespace vivace\db\sql\expression;
+namespace vivace\db\sql\statement;
 
 
 final class Delete implements Modifier

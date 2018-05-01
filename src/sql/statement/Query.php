@@ -6,10 +6,9 @@
  * Time: 11:37
  */
 
-namespace vivace\db\sql\expression;
+namespace vivace\db\sql\statement;
 
 
 interface Query extends Statement
 {
-
 }

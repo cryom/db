@@ -11,5 +11,10 @@ namespace vivace\db;
 
 class Exception extends \Exception
 {
-    const NOT_SUPPORTED_STATEMENT = 100100;
+    const STATEMENT_NOT_EXPECTED = 100100;
+
+    public static function statementNotExpected(string $message)
+    {
+        return new Exception($message, self::STATEMENT_NOT_EXPECTED);
+    }
 }

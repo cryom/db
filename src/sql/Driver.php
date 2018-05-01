@@ -9,24 +9,36 @@
 namespace vivace\db\sql;
 
 
-interface Driver
+use vivace\db\Property;
+
+abstract class Driver
 {
+    protected static $schemas = [];
+
     /**
-     * @param \vivace\db\sql\expression\Statement $statement
-     * @param array $params
+     * @param \vivace\db\sql\statement\Statement|array $statement
      *
      * @return array [string $query, array $params]
      */
-    public function build(expression\Statement $statement, array $params = []): array;
+    abstract public function build($statement): array;
 
     /**
-     * @param \vivace\db\sql\expression\Read $query
+     * @param \vivace\db\sql\statement\Read $query
      *
-     * @return \vivace\db\sql\Fetcher|array[]
+     * @return \vivace\db\Reader
      */
-    public function read(expression\Read $query): \vivace\db\Reader;
+    abstract public function read(statement\Read $query): \vivace\db\Reader;
 
-    public function execute(expression\Modifier $query): int;
+    abstract public function execute(statement\Modifier $query): int;
+
+    /**
+     * @param \vivace\db\Property $property
+     * @param $value
+     *
+     * @return mixed
+     */
+    abstract function typecastIn(Property $property, $value);
+    abstract function typecastOut(Property $property, $value);
 
 }
 

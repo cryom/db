@@ -8,10 +8,12 @@
 
 namespace vivace\db\sql;
 
+use vivace\db\Property;
 use vivace\db\Relation;
 use vivace\db\Reader;
 use vivace\db\mixin;
-use vivace\db\sql\expression\Select;
+use vivace\db\Schema;
+use vivace\db\sql\statement\Select;
 
 class Finder implements \vivace\db\Finder
 {
@@ -41,6 +43,11 @@ class Finder implements \vivace\db\Finder
         $o = clone $this;
         $o->limit = $value;
         return $o;
+    }
+
+    public function storage(): Storage
+    {
+        return $this->storage;
     }
 
     /**
@@ -81,22 +88,104 @@ class Finder implements \vivace\db\Finder
         return $o;
     }
 
+    /**
+     * @param array $filter
+     *
+     * @return array
+     * @throws \Exception
+     */
+    protected function normalizeFilter(array $filter): array
+    {
+        if (!$filter) {
+            return $filter;
+        }
+
+        $schema = $this->storage()->schema();
+
+        if (!isset($filter[0])) {
+            $normalized = [];
+            foreach ($filter as $key => $value) {
+                $property = $schema->get($key);
+                $key = $property->getName();
+                $normalized[$key] = $this->storage()->driver()->typecastIn($property, $value);
+            }
+            return $normalized;
+        }
+
+        switch ($filter[0]) {
+            case '=':
+            case '>':
+            case '<':
+            case '>=':
+            case '<=':
+            case '!=':
+                $property = $schema->get($filter[1]);
+                $filter[1] = $property->getName();
+                $filter[2] = $this->storage()->driver()->typecastIn($property, $filter[2]);
+                break;
+            case 'and':
+            case 'or':
+                $cnt = count($filter);
+                for ($i = 1; $i < $cnt; $i++) {
+                    $filter[$i] = $this->normalizeFilter($filter[$i]);
+                }
+                break;
+            case 'in':
+                $property = $schema->get($filter[1]);
+                $filter[1] = $property->getName();
+                foreach ($filter[2] as &$value) {
+                    $value = $this->storage()->driver()->typecastIn($property, $value);
+                }
+                break;
+            case 'between':
+                $property = $schema->get($filter[1]);
+                $filter[1] = $property->getName();
+                $filter[2] = $this->storage()->driver()->typecastIn($property, $filter[2]);
+                $filter[3] = $this->storage()->driver()->typecastIn($property, $filter[3]);
+                break;
+        }
+
+        return $filter;
+    }
+
+    /**
+     * @param array $sort
+     *
+     * @return array
+     * @throws \Exception
+     */
+    protected function normalizeSort(array $sort): array
+    {
+        $schema = $this->storage()->schema();
+        $new = [];
+        foreach ($sort as $key => $value) {
+            $key = $schema->get($key)->getName();
+            $new[$key] = $value;
+        }
+
+        return $new;
+    }
+
+    /**
+     * @return \vivace\db\Reader
+     * @throws \Exception
+     */
     public function fetch(): Reader
     {
-        $tableName = $this->storage->getSourceName();
+        $schema = $this->storage()->schema();
+        $query = new Select($schema->getName());
+        if ($this->filter) {
+            $query->where = $this->normalizeFilter($this->filter);
+        }
+        if ($this->sort) {
+            $query->order = $this->normalizeSort($this->sort);
+        }
 
-        $query = new Select($tableName);
-        $query->where = $this->filter;
-        $query->order = $this->sort;
         $query->limit = $this->limit;
         $query->offset = $this->skip;
 
-
-        $reader = $this->storage->driver()->read($query);
-        if ($this->typecast) {
-            $reader = new Caster($reader, $this->storage->schema());
-        }
-
+        $reader = $this->storage()->driver()->read($query);
+        $reader = new \vivace\db\sql\Reader($reader, $schema, $this->storage()->driver());
         $relations = array_filter($this->projection, function ($value) {
             return $value instanceof Relation;
         });
@@ -107,6 +196,5 @@ class Finder implements \vivace\db\Finder
 
         return $reader;
     }
-
 
 }

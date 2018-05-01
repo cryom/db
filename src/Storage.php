@@ -73,4 +73,6 @@ interface Storage
      */
     public function many(array $key);
 
+    public function schema(): Schema;
+
 }

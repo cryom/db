@@ -9,14 +9,16 @@
 namespace vivace\db\sql;
 
 
+use vivace\db\Property;
 use vivace\db\Reader;
 use vivace\db\Relation\Many;
 use vivace\db\Relation\Single;
-use vivace\db\sql\expression\Columns;
+use vivace\db\Schema;
+use vivace\db\sql\statement\Columns;
 
 class Storage implements \vivace\db\Storage
 {
-    private static $meta = [];
+    protected static $schemas = [];
     /**
      * @var \PDO
      */
@@ -69,7 +71,7 @@ class Storage implements \vivace\db\Storage
         return $finder;
     }
 
-    public function getSourceName(): string
+    public function getSource(): string
     {
         return $this->sourceName;
     }
@@ -94,20 +96,32 @@ class Storage implements \vivace\db\Storage
         return $this->find()->sort($sort);
     }
 
-    public function schema(bool $force = false): array
+    /**
+     * @param bool $force
+     *
+     * @return Schema
+     * @throws \Exception
+     */
+    public function schema(bool $force = false): Schema
     {
-        $sourceName = $this->getSourceName();
-        if (!$force && isset(self::$meta[$sourceName])) {
-            return self::$meta[$sourceName];
+        $source = $this->getSource();
+        if (!$force && isset(self::$schemas[$source])) {
+            return self::$schemas[$source];
         }
+        $schema = new Schema($source);
+        $result = $this->driver()->read(new Columns($source));
 
-        $result = $this->driver()->read(new Columns($sourceName));
-        $map = [];
         foreach ($result as $key => $value) {
-            $map[$value['name']] = $value;
+            $property = new Property($value['name']);
+            $property->setNullable($value['nullable']);
+            $property->setType($value['type']);
+            if (isset($value['default']))
+                $property->setDefault($value['default']);
+
+            $schema->set($value['name'], $property);
         }
 
-        return self::$meta[$sourceName] = $map;
+        return self::$schemas[$source] = $schema;
     }
 
     /**
@@ -125,6 +139,10 @@ class Storage implements \vivace\db\Storage
         return $this->find()->typecast($enable);
     }
 
+    /**
+     * @return \vivace\db\Reader
+     * @throws \Exception
+     */
     public function fetch(): Reader
     {
         return $this->find()->fetch();

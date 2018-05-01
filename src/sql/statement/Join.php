@@ -6,7 +6,7 @@
  * Time: 21:54
  */
 
-namespace vivace\db\sql\expression;
+namespace vivace\db\sql\statement;
 
 
 final class Join
@@ -20,6 +20,10 @@ final class Join
     public $source;
     /** @var array */
     public $on;
+
+    private function __construct()
+    {
+    }
 
     public static function left($source, array $on = [])
     {

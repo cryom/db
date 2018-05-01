@@ -6,7 +6,7 @@
  * Time: 15:48
  */
 
-namespace vivace\db\sql\expression;
+namespace vivace\db\sql\statement;
 
 
 interface Modifier extends Query

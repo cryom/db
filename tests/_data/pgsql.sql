@@ -8,7 +8,7 @@ CREATE TABLE foo (
   "float"    FLOAT(5),
   "double"   DOUBLE PRECISION,
   "decimal"  DECIMAL(5, 5),
-  datetime TIMESTAMP WITHOUT TIME ZONE
+  datetime   TIMESTAMP WITHOUT TIME ZONE
 );
 INSERT INTO
   foo
@@ -49,3 +49,57 @@ VALUES
   ('baz_2'),
   ('baz_3'),
   ('baz_4');
+
+CREATE TYPE test_enum as ENUM ('one', 'two');
+CREATE TABLE type_table (
+  smallint          SMALLINT,
+  integer           INTEGER,
+  bigint            BIGINT,
+  decimal           DECIMAL,
+  numeric           NUMERIC,
+  real              REAL,
+  double_precission DOUBLE PRECISION,
+  smallserial       SMALLSERIAL,
+  serial            SERIAL,
+  bigserial         BIGSERIAL,
+  money             MONEY,
+  char_var character varying,
+  char         CHARACTER(10),
+  text              TEXT,
+  bytea             BYTEA,
+  timestamp         timestamp,
+  timestamptz       TIMESTAMP WITH TIME ZONE,
+  date              DATE,
+  time              TIME,
+  timetz            TIME WITH TIME ZONE,
+  interval          INTERVAL,
+  boolean           BOOLEAN,
+  enum              test_enum
+);
+
+INSERT INTO type_table (
+  smallint,
+  integer,
+  bigint,
+  decimal,
+  numeric,
+  real,
+  double_precission,
+  money,
+  char_var,
+  char,
+  text,
+  bytea,
+  timestamp,
+  timestamptz,
+  date,
+  time,
+  timetz,
+  interval,
+  boolean,
+  enum)
+VALUES (
+  1, 2, 3, 4.1,4.2,4.3,4.4,10.3, 'char_var', 'char', 'text',
+  '123', '2017-01-01 22:01:02', '2017-01-01 22:01:03',
+  '2017-01-01', '22:01:02', '22:01:03', '35', FALSE , 'two'
+)

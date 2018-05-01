@@ -17,7 +17,7 @@ class Chunker implements \vivace\db\Reader
     /**
      * @var \Traversable
      */
-    protected $reader;
+    protected $iterator;
     /**
      * @var int
      */
@@ -31,7 +31,7 @@ class Chunker implements \vivace\db\Reader
      */
     public function __construct(Traversable $reader, int $size)
     {
-        $this->reader = $reader;
+        $this->iterator = $reader;
         $this->size = $size;
     }
 
@@ -54,7 +54,7 @@ class Chunker implements \vivace\db\Reader
     {
         $items = [];
         $i = 0;
-        foreach ($this->reader as $item) {
+        foreach ($this->iterator as $item) {
             $items[] = $item;
             if (++$i % $this->size === 0) {
                 yield $items;
@@ -71,7 +71,10 @@ class Chunker implements \vivace\db\Reader
      */
     public function one(): ?array
     {
-        foreach ($this->reader as $item) {
+        if ($this->iterator instanceof Reader) {
+            return $this->iterator->one();
+        }
+        foreach ($this->iterator as $item) {
             return $item;
         }
     }
@@ -85,11 +88,17 @@ class Chunker implements \vivace\db\Reader
 
     public function all(): array
     {
-        return iterator_to_array($this->reader);
+        if ($this->iterator instanceof Reader) {
+            return $this->iterator->all();
+        }
+        return iterator_to_array($this->iterator);
     }
 
     public function count(): int
     {
-        return iterator_count($this->reader);
+        if ($this->iterator instanceof \Countable) {
+            return $this->iterator->count();
+        }
+        return iterator_count($this->iterator);
     }
 }

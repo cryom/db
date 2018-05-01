@@ -12,11 +12,12 @@ namespace vivace\db\sql;
 use SebastianBergmann\Diff\Chunk;
 use Traversable;
 use vivace\db\Exception;
+use vivace\db\Property;
 use vivace\db\Reader;
-use vivace\db\sql\expression\Read;
-use vivace\db\sql\expression\Columns;
+use vivace\db\sql\statement\Read;
+use vivace\db\sql\statement\Columns;
 
-class Mysql implements Driver
+class Mysql extends Driver
 {
     const VERSION = '1';
     const OP_LITERAL = 0;
@@ -41,7 +42,6 @@ class Mysql implements Driver
      */
     public function __construct(\PDO $pdo)
     {
-//        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $this->pdo = $pdo;
     }
 
@@ -70,14 +70,15 @@ class Mysql implements Driver
         return '`' . str_replace('.', '`.`', $identifier) . '`';
     }
 
+
     /**
-     * @param \vivace\db\sql\expression\Statement $statement
+     * @param \vivace\db\sql\statement\Statement|array $statement
      * @param array $params
      *
      * @return array
      * @throws \Exception
      */
-    public function build(expression\Statement $statement, array $params = []): array
+    public function build($statement, array $params = []): array
     {
         $stack = [$statement];
         $logical = null;
@@ -175,8 +176,8 @@ class Mysql implements Driver
                 }
             } else {
                 switch (get_class($statement)) {
-                    case expression\Select::class:
-                        /** @var $statement expression\Select */
+                    case statement\Select::class:
+                        /** @var $statement statement\Select */
                         $stack[] = self::literal('SELECT ');
 
                         if (!$statement->projection) {
@@ -217,18 +218,18 @@ class Mysql implements Driver
                         }
 
                         $stack[] = self::literal(' FROM ');
-                        $stack[] = self::identifier($statement->from);
+                        $stack[] = self::identifier($statement->source);
 
                         if ($statement->join) {
                             foreach ($statement->join as $join) {
                                 switch ($join->type) {
-                                    case expression\Join::LEFT:
+                                    case statement\Join::LEFT:
                                         $stack[] = self::literal(' LEFT JOIN ');
                                         break;
-                                    case expression\Join::RIGHT:
+                                    case statement\Join::RIGHT:
                                         $stack[] = self::literal(' RIGHT JOIN ');
                                         break;
-                                    case expression\Join::INNER:
+                                    case statement\Join::INNER:
                                         $stack[] = self::literal(' INNER JOIN ');
                                         break;
                                 }
@@ -266,7 +267,7 @@ class Mysql implements Driver
                             } else {
                                 $stack[] = self::value((int)$statement->limit);
                             }
-                        }elseif($statement->offset){
+                        } elseif ($statement->offset) {
                             $stack[] = self::literal(' LIMIT ');
 
                             $stack[] = self::value((int)$statement->offset);
@@ -283,7 +284,7 @@ class Mysql implements Driver
                         break;
 
                     default:
-                        throw new Exception("Not supported statement " . get_class($statement), Exception::NOT_SUPPORTED_STATEMENT);
+                        throw new Exception("Not supported statement " . get_class($statement), Exception::STATEMENT_NOT_EXPECTED);
                 }
             }
 
@@ -315,12 +316,12 @@ class Mysql implements Driver
     }
 
     /**
-     * @param \vivace\db\sql\expression\Read $query
+     * @param \vivace\db\sql\statement\Read $query
      *
      * @return \vivace\db\Reader
      * @throws \Exception
      */
-    public function read(expression\Read $query): \vivace\db\Reader
+    public function read(statement\Read $query): \vivace\db\Reader
     {
         [$sql, $params] = $this->build($query);
         if ($query instanceof Columns) {
@@ -333,12 +334,12 @@ class Mysql implements Driver
     }
 
     /**
-     * @param \vivace\db\sql\expression\Modifier $query
+     * @param \vivace\db\sql\statement\Modifier $query
      *
      * @return int
      * @throws \Exception
      */
-    public function execute(expression\Modifier $query): int
+    public function execute(statement\Modifier $query): int
     {
 
         $stmt = $this->prepare(...$this->build($query));
@@ -522,5 +523,45 @@ class Mysql implements Driver
                 return new \ArrayIterator($this->data);
             }
         };
+    }
+
+    /**
+     * @param \vivace\db\Property $property
+     * @param $value
+     *
+     * @return mixed
+     */
+    function typecastIn(Property $property, $value)
+    {
+        switch ($property->getType()) {
+            case Property::TYPE_BOOL:
+            case Property::TYPE_INT:
+            case Property::TYPE_STRING:
+            case Property::TYPE_FLOAT:
+                settype($value, $property->getType());
+                return $value;
+            case Property::TYPE_DATETIME:
+                if ($value instanceof \DateTime) {
+                    return $value->format(\DateTime::ISO8601);
+                }
+        }
+
+        return $value;
+    }
+
+    function typecastOut(Property $property, $value)
+    {
+        switch ($property->getType()) {
+            case Property::TYPE_BOOL:
+            case Property::TYPE_INT:
+            case Property::TYPE_STRING:
+            case Property::TYPE_FLOAT:
+                settype($value, $property->getType());
+                return $value;
+            case Property::TYPE_DATETIME:
+                return new \DateTime($value);
+        }
+
+        return $value;
     }
 }
