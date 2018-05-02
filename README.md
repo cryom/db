@@ -71,6 +71,47 @@ $users = $reader->all();
 $user = $reader->one();
     
 ```
+#### Filtering expressions
+
+```php
+// Let's start with comparison operators. Next expression return one user, whose name is "Foo".
+$finder = $user->filter(['=', 'name', 'Foo']);
+
+// So instead of equal operator you can use the following operators, which speak for themselves: >,>=,!=, <=, <
+$finder = $user->filter(['>=', 'age', 18]);
+
+// Is interpreted as "name = 'Foo' AND age > 40"
+$finder = $user->filter(['and', ['=', 'name', 'Foo'], ['>', 'age', 40]]);
+
+// Is interpreted as "name != 'Foo' OR age <= 40"
+$finder = $user->filter(['or', ['!=', 'name', 'Foo'], ['<=', 'age', 40]]);
+
+// IN operator. Is interpreted as "name IN('Foo', 'Bar', 'Baz')"
+$finder = $user->filter(['in', 'name', ['Foo', 'Bar', 'Baz']]);
+
+// BETWEEN operator. Is interpreted as "age BETWEEN 18 AND 30"
+$finder = $user->filter(['between', 'age', 18, 30]);
+
+// Associative array. Is interpreted as "age = 18 AND name = 'Foo'"
+$finder = $user->filter(['age' => 18, 'name' => 'Foo']);
+
+// A more complex example of combining expression."
+$finder = $user->filter([
+    'or',
+    ['age' => 19, 'name' => 'Foo'],
+    ['age' => 19, 'name' => 'Baz'],
+    [
+        'and',
+        ['in', 'status', 10, 20],
+        ['!=', 'is_deleted', true]
+    ]
+]);
+// Adding conditions to the finder. Is interpreted as "(name = 'Foo' AND age = 18) OR is_deleted = true"
+$finder = $finder->filter(['name' => 'Foo']);
+$finder = $finder->and(['age' => 18]);
+$finder = $finder->or(['is_deleted' => true]);
+
+```
 
 ## Running the tests
 
