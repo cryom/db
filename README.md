@@ -102,7 +102,7 @@ $finder = $user->filter([
     ['age' => 19, 'name' => 'Baz'],
     [
         'and',
-        ['in', 'status', 10, 20],
+        ['between', 'status', 10, 20],
         ['!=', 'is_deleted', true]
     ]
 ]);
