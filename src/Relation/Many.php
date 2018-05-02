@@ -31,7 +31,7 @@ abstract class Many implements Filtrable, Relation
      * Many constructor.
      *
      * @param \vivace\db\Storage $storage
-     * @param array $key Assoc array, when key is foreign key and value is primary key from this storage
+     * @param array $key Assoc array, when key is foreign key and value is field from this storage
      */
     public function __construct(Storage $storage, array $key)
     {

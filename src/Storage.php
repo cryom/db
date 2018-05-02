@@ -60,14 +60,14 @@ interface Storage
     public function fetch();
 
     /**
-     * @param array $key Assoc array, when key is foreign key and value is primary key from this storage
+     * @param array $key Assoc array, when key is foreign key and value is field from this storage
      *
      * @return \vivace\db\Relation\Single
      */
     public function single(array $key);
 
     /**
-     * @param array $key Assoc array, when key is foreign key and value is primary key from this storage
+     * @param array $key Assoc array, when key is foreign key and value is field from this storage
      *
      * @return \vivace\db\Relation\Many
      */
