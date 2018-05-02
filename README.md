@@ -110,7 +110,15 @@ $finder = $user->filter([
 $finder = $finder->filter(['name' => 'Foo']);
 $finder = $finder->and(['age' => 18]);
 $finder = $finder->or(['is_deleted' => true]);
+```
+#### Sorting and pagination
 
+```php
+// Fetch from 20 to 30 rows
+$finder = $finder->skip(20)->limit(10);
+
+// Sort by descending of age and ascending status
+$finder = $finder->sort(['age' => -1, 'status' => 1]);
 ```
 
 ## Running the tests
