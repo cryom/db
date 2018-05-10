@@ -1,4 +1,6 @@
-test/ export-ignore
+tests/ export-ignore
 docker/ export-ignore
 docker* export-ignore
 codeception.yml export-ignore
+README.md export-ignore
+

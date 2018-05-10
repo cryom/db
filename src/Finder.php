@@ -51,4 +51,6 @@ interface Finder extends Filtrable
      */
     public function fetch();
 
+    public function update(array $data): int;
+
 }

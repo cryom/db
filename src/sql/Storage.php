@@ -9,16 +9,14 @@
 namespace vivace\db\sql;
 
 
-use vivace\db\Property;
+use vivace\db\Collection;
+use vivace\db\Entity;
 use vivace\db\Reader;
 use vivace\db\Relation\Many;
 use vivace\db\Relation\Single;
-use vivace\db\Schema;
-use vivace\db\sql\statement\Columns;
 
 class Storage implements \vivace\db\Storage
 {
-    protected static $schemas = [];
     /**
      * @var \PDO
      */
@@ -26,25 +24,44 @@ class Storage implements \vivace\db\Storage
     /**
      * @var string
      */
-    protected $sourceName;
-
+    protected $source;
+    /**
+     * @var array
+     */
+    protected $schema;
 
     /**
      * Source constructor.
      *
      * @param Driver $adapter
-     * @param string $sourceName
+     * @param string $source
+     * @param array $schema
      */
-    public function __construct(Driver $adapter, string $sourceName)
+    public function __construct(Driver $adapter, string $source, array $schema = [])
     {
         $this->adapter = $adapter;
-        $this->sourceName = $sourceName;
+        $this->source = $source;
+        $this->schema = $schema;
+    }
+
+    /**
+     * @return array
+     * @throws \Exception
+     */
+    public function getProjection(): array
+    {
+        $schema = $this->schema();
+        return array_combine(
+            $schema->getNames(),
+            array_pad([], count($schema), true)
+        );
     }
 
     /**
      * @param null|array $filter
      *
      * @return Finder
+     * @throws \Exception
      */
     public function filter(array $filter)
     {
@@ -55,6 +72,7 @@ class Storage implements \vivace\db\Storage
      * @param int|null $value
      *
      * @return Finder
+     * @throws \Exception
      */
     public function limit(int $value)
     {
@@ -63,17 +81,20 @@ class Storage implements \vivace\db\Storage
 
     /**
      * @return \vivace\db\sql\Finder
+     * @throws \Exception
      */
     public function find()
     {
         $finder = new Finder($this);
-
+        if ($projection = $this->getProjection()) {
+            $finder = $finder->projection($projection);
+        }
         return $finder;
     }
 
     public function getSource(): string
     {
-        return $this->sourceName;
+        return $this->source;
     }
 
     public function driver(): Driver
@@ -85,58 +106,44 @@ class Storage implements \vivace\db\Storage
      * @param int $value
      *
      * @return \vivace\db\Finder|\vivace\db\sql\Finder
+     * @throws \Exception
      */
     public function skip(int $value)
     {
         return $this->find()->skip($value);
     }
 
+    /**
+     * @param array $sort
+     *
+     * @return \vivace\db\Finder|\vivace\db\sql\Finder
+     * @throws \Exception
+     */
     public function sort(array $sort)
     {
         return $this->find()->sort($sort);
     }
 
     /**
-     * @param bool $force
+     * @param bool $refresh
      *
-     * @return Schema
-     * @throws \Exception
+     * @return \vivace\db\sql\Schema
      */
-    public function schema(bool $force = false): Schema
+    public function schema(bool $refresh = false): Schema
     {
         $source = $this->getSource();
-        if (!$force && isset(self::$schemas[$source])) {
-            return self::$schemas[$source];
-        }
-        $schema = new Schema($source);
-        $result = $this->driver()->read(new Columns($source));
-
-        foreach ($result as $key => $value) {
-            $property = new Property($value['name']);
-            $property->setNullable($value['nullable']);
-            $property->setType($value['type']);
-            if (isset($value['default']))
-                $property->setDefault($value['default']);
-
-            $schema->set($value['name'], $property);
-        }
-
-        return self::$schemas[$source] = $schema;
+        return $this->driver()->schema($source, $refresh);
     }
 
     /**
      * @param array $map
      *
      * @return \vivace\db\sql\Finder
+     * @throws \Exception
      */
     public function projection(array $map)
     {
         return $this->find()->projection($map);
-    }
-
-    public function typecast(bool $enable = true)
-    {
-        return $this->find()->typecast($enable);
     }
 
     /**
@@ -156,5 +163,35 @@ class Storage implements \vivace\db\Storage
     public function many(array $key): Many
     {
         return new Relation\Many($this, $key);
+    }
+
+    /**
+     * @param array $data
+     *
+     * @return \vivace\db\Entity
+     * @throws \Exception
+     */
+    public function entity(array $data = []): Entity
+    {
+        return new \vivace\db\sql\Entity($this, $this->getProjection(), $data);
+    }
+
+    /**
+     * @param \vivace\db\Entity[] $entities
+     *
+     * @return \vivace\db\Collection
+     */
+    public function collection(array $entities = []): Collection
+    {
+        return new \vivace\db\sql\Collection($this, $entities);
+    }
+
+    /**
+     * @inheritdoc
+     * @throws \Exception
+     */
+    public function update(array $data)
+    {
+        return $this->find()->update($data);
     }
 }

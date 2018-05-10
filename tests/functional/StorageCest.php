@@ -24,19 +24,76 @@ class StorageCest
      * @throws \Codeception\Exception\ModuleException
      * @throws \Exception
      */
-    public function case1(FunctionalTester $I, \Codeception\Scenario $scenario)
+    public function fetchOneWithFilter(FunctionalTester $I)
     {
-        $I->wantTo('Fetch one `bar`');
-
         $bar = $I->createStorage('bar');
         $data = $bar->filter(['id' => 1])->fetch()->one();
 
-        $I->assertInternalType('array', $data);
+        $I->assertInstanceOf(\vivace\db\Entity::class, $data);
         $I->assertArrayHasKey('name', $data);
         $I->assertArrayHasKey('id', $data);
 
         $I->assertEquals(1, $data['id']);
         $I->assertEquals('bar_1', $data['name']);
+    }
+
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
+     */
+    public function fetchAllWithLimit(FunctionalTester $I, \Codeception\Scenario $scenario)
+    {
+        $bar = $I->createStorage('bar');
+        $data = $bar->limit(2)->fetch()->all();
+
+        $I->assertInstanceOf(\vivace\db\Collection::class, $data);
+        $I->assertCount(2, $data);
+    }
+
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
+     */
+    public function fetchAllByDatetime(FunctionalTester $I)
+    {
+        $foo = $I->createStorage('foo');
+        $finder = $foo->filter(['datetime' => new DateTime('2011-01-01 22:17:16')]);
+        $result = $finder->fetch()->all();
+
+        $I->assertCount(1, $result);
+    }
+
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
+     */
+    public function fetchAllWithProjection(FunctionalTester $I, \Codeception\Scenario $scenario)
+    {
+        $bar = $I->createStorage('bar');
+        $data = $bar->projection([
+            'bazID' => 'baz_id',
+            'IDENTIFIER' => 'id',
+            'baz_id' => false,
+        ])->filter(['in', 'IDENTIFIER', [2, 3]])
+            ->sort(['IDENTIFIER' => -1])
+            ->fetch()->all();
+
+        $I->assertInstanceOf(\vivace\db\Collection::class, $data);
+        $I->assertCount(2, $data);
+
+        $I->assertArrayNotHasKey('baz_id', $data[0]);
+        $I->assertArrayHasKey('name', $data[0]);
+        $I->assertArrayHasKey('bazID', $data[0]);
+        $I->assertArrayHasKey('IDENTIFIER', $data[0]);
+
+        $I->assertSame(3, $data[0]['IDENTIFIER']);
+        $I->assertSame(2, $data[1]['IDENTIFIER']);
     }
 
     /**
@@ -57,101 +114,18 @@ class StorageCest
         $data = iterator_to_array($data);
 
         $I->assertArrayHasKey(0, $data);
-        $I->assertInternalType('array', $data[0]);
+        $I->assertInstanceOf(\vivace\db\Entity::class, $data[0]);
         $I->assertArrayHasKey('name', $data[0]);
         $I->assertArrayHasKey('id', $data[0]);
         $I->assertEquals(2, $data[0]['id']);
         $I->assertEquals('bar_2', $data[0]['name']);
 
         $I->assertArrayHasKey(1, $data);
-        $I->assertInternalType('array', $data[1]);
+        $I->assertInstanceOf(\vivace\db\Entity::class, $data[1]);
         $I->assertArrayHasKey('name', $data[1]);
         $I->assertArrayHasKey('id', $data[1]);
         $I->assertEquals(1, $data[1]['id']);
         $I->assertEquals('bar_1', $data[1]['name']);
-    }
-
-    /**
-     * @param \FunctionalTester $I
-     *
-     * @throws \Codeception\Exception\ModuleException
-     * @throws \Exception
-     */
-    public function case3(FunctionalTester $I)
-    {
-        $foo = $I->createStorage('foo');
-        $bar = $I->createStorage('bar');
-        $bar = $bar->projection([
-            'foo' => $foo->single(['id' => 'bar_id']),
-        ]);
-        $result = $bar->fetch()->one();
-
-        $I->assertArrayHasKey('foo', $result);
-        $I->assertInternalType('array', $result['foo']);
-        $I->assertNotEmpty($result['foo']);
-    }
-
-    /**
-     * @param \FunctionalTester $I
-     *
-     * @throws \Codeception\Exception\ModuleException
-     * @throws \Exception
-     */
-    public function case4(FunctionalTester $I)
-    {
-        $foo = $I->createStorage('foo');
-        $baz = $I->createStorage('baz');
-        $bar = $I->createStorage('bar');
-        $bar = $bar->projection([
-            'foo' => $foo->single(['id' => 'bar_id']),
-            'baz' => $baz->single(['baz_id' => 'id'])
-        ]);
-        $result = $bar->filter(['in', 'id', [1, 2, 3]])->fetch()->all();
-
-        $I->assertCount(3, $result);
-        $I->assertArrayHasKey('foo', $result[0]);
-        $I->assertArrayHasKey('baz', $result[0]);
-
-        $I->assertArrayHasKey('foo', $result[1]);
-        $I->assertArrayHasKey('baz', $result[1]);
-
-        $I->assertArrayNotHasKey('foo', $result[2]);
-        $I->assertArrayHasKey('baz', $result[2]);
-    }
-
-    /**
-     * @param \FunctionalTester $I
-     *
-     * @throws \Codeception\Exception\ModuleException
-     * @throws \Exception
-     */
-    public function case5(FunctionalTester $I)
-    {
-        $foo = $I->createStorage('foo');
-        $baz = $I->createStorage('baz');
-        $bar = $I->createStorage('bar');
-
-        $bar = $bar->projection([
-            'foo' => $foo->many(['id' => 'bar_id']),
-            'baz' => $baz->many(['baz_id' => 'id'])
-        ]);
-        $result = $bar->filter(['in', 'id', [1, 2, 3]])->fetch()->all();
-
-        $I->assertCount(3, $result);
-        $I->assertArrayHasKey('foo', $result[0]);
-        $I->assertCount(2, $result[0]['foo']);
-        $I->assertArrayHasKey('baz', $result[0]);
-        $I->assertCount(1, $result[0]['baz']);
-
-        $I->assertArrayHasKey('foo', $result[1]);
-        $I->assertCount(2, $result[1]['foo']);
-        $I->assertArrayHasKey('baz', $result[1]);
-        $I->assertCount(1, $result[1]['baz']);
-
-
-        $I->assertArrayNotHasKey('foo', $result[2]);
-        $I->assertArrayHasKey('baz', $result[2]);
-        $I->assertCount(1, $result[2]['baz']);
     }
 
     /**
@@ -174,7 +148,6 @@ class StorageCest
         $data = iterator_to_array($result);
 
         $I->assertCount(3, $data);
-//        $I->assertEquals('5', $data[0]['type']);
         $I->assertEquals('6', $data[0]['type']);
         $I->assertEquals('7', $data[1]['type']);
         $I->assertEquals('4', $data[2]['type']);
@@ -201,9 +174,35 @@ class StorageCest
 
     }
 
-    public function typecastMysql(FunctionalTester $I)
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @env mysql
+     * @throws \Exception
+     */
+    public function mysqlTypecasting(FunctionalTester $I)
     {
+        $storage = $I->createStorage('type_table');
+        $item = $storage->fetch()->one();
 
+        $I->assertSame(1, $item['bit']);
+        $I->assertSame(2, $item['tinyint']);
+        $I->assertSame(1, $item['bool']);
+        $I->assertSame(4, $item['smallint']);
+        $I->assertSame(5, $item['mediumint']);
+        $I->assertSame(7, $item['integer']);
+        $I->assertSame(8, $item['bigint']);
+
+        $I->assertSame(9.3, $item['decimal']);
+        $I->assertSame(9.4, $item['float']);
+        $I->assertSame(9.5, $item['double']);
+
+
+        $I->assertEquals(new DateTime('2017-01-02 00:00:00'), $item['datetime']);
+        $I->assertEquals(new DateTime('2017-01-02 00:00:01'), $item['timestamp']);
+        $I->assertSame('2017-01-02', $item['date']);
+        $I->assertSame('2017', $item['year']);
     }
 
     /**
@@ -211,12 +210,11 @@ class StorageCest
      *
      * @throws \Codeception\Exception\ModuleException
      * @env pgsql
+     * @throws \Exception
      */
-    public function typecastPgsql(FunctionalTester $I)
+    public function pgsqlTypecasting(FunctionalTester $I)
     {
-        $I->wantTo('Check typecasting');
         $storage = $I->createStorage('type_table');
-
         $item = $storage->fetch()->one();
 
         $I->assertSame(1, $item['smallint']);
@@ -247,10 +245,8 @@ class StorageCest
      * @throws \Codeception\Exception\ModuleException
      * @throws \Exception
      */
-    public function aliases(FunctionalTester $I)
+    public function aliasesWithRelations(FunctionalTester $I)
     {
-        $I->wantTo('Check aliases');
-
         $foo = $I->createStorage('foo');
         $bar = $I->createStorage('bar');
         $baz = $I->createStorage('baz');
@@ -271,5 +267,91 @@ class StorageCest
         $I->assertSame(2, $item['refBarID']);
         $I->assertSame(2, $item['bar']['barID']);
         $I->assertSame(2, $item['bar']['baz'][0]['bazID']);
+    }
+
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
+     */
+    public function multiIteration(FunctionalTester $I)
+    {
+        $foo = $I->createStorage('foo');
+        $reader = $foo->limit(2)->fetch();
+
+        $I->assertCount(2, $reader);
+        $data = iterator_to_array($reader);
+        $I->assertCount(2, $data);
+        $data = iterator_to_array($reader);
+        $I->assertCount(2, $data);
+    }
+
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
+     */
+    public function checkUpdate(FunctionalTester $I)
+    {
+        $foo = $I->createStorage('foo');
+
+        $vorder = 77;
+        $vtype = 'ittype';
+
+        $affected = $foo->update(['type' => $vtype, 'order' => $vorder]);
+
+        $I->assertSame(5, $affected);
+
+        $data = $foo->fetch()->all();
+
+        $I->assertSame($vorder, $data[0]['order']);
+        $I->assertSame($vtype, $data[0]['type']);
+
+        $I->assertSame($vorder, $data[1]['order']);
+        $I->assertSame($vtype, $data[1]['type']);
+
+        $I->assertSame($vorder, $data[2]['order']);
+        $I->assertSame($vtype, $data[2]['type']);
+
+        $I->assertSame($vorder, $data[3]['order']);
+        $I->assertSame($vtype, $data[3]['type']);
+
+        $I->assertSame($vorder, $data[4]['order']);
+        $I->assertSame($vtype, $data[4]['type']);
+    }
+
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
+     */
+    public function checkUpdateWithCondition(FunctionalTester $I)
+    {
+        $foo = $I->createStorage('foo');
+        $finder = $foo->sort(['id' => -1])->skip(1)->limit(2);
+
+        $vorder = 77;
+        $vtype = 'ittype';
+
+        $affected = $finder->update(['type' => $vtype, 'order' => $vorder]);
+
+        $I->assertSame(2, $affected);
+
+        $data = $finder->skip(null)->limit(4)->fetch()->all();
+
+        $I->assertNotSame($vorder, $data[0]['order']);
+        $I->assertNotSame($vtype, $data[0]['type']);
+
+        $I->assertSame($vorder, $data[1]['order']);
+        $I->assertSame($vtype, $data[1]['type']);
+
+        $I->assertSame($vorder, $data[2]['order']);
+        $I->assertSame($vtype, $data[2]['type']);
+
+        $I->assertNotSame($vorder, $data[3]['order']);
+        $I->assertNotSame($vtype, $data[3]['type']);
     }
 }

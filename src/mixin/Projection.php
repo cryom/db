@@ -11,12 +11,13 @@ namespace vivace\db\mixin;
 
 trait Projection
 {
+    /** @var array */
     protected $projection;
 
     /**
      * @param array|null $projection
      *
-     * @return \vivace\db\mixin\Projection Clone of this instance
+     * @return static|$this Clone of this instance
      */
     public function projection(?array $projection)
     {
@@ -24,7 +25,7 @@ trait Projection
         if ($projection === null || !$o->projection) {
             $o->projection = $projection;
         } else {
-            $o->projection = array_merge($o->projection, $projection);
+            $o->projection = array_replace($o->projection, $projection);
         }
 
         return $o;

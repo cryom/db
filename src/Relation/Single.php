@@ -9,6 +9,9 @@
 namespace vivace\db\Relation;
 
 
+use vivace\db\Collection;
+use vivace\db\Data;
+use vivace\db\Entity;
 use vivace\db\Relation;
 use vivace\db\Filtrable;
 use vivace\db\mixin;
@@ -39,9 +42,8 @@ abstract class Single implements Filtrable, Relation
         $this->key = $key;
     }
 
-    function populate(iterable $items, string $field): array
+    function populate(Data $data, string $field)
     {
-        $map = [];
         $simpleKey = count($this->key) == 1;
         $finder = $this->storage->find();
         if ($this->filter) {
@@ -52,57 +54,73 @@ abstract class Single implements Filtrable, Relation
             $finder = $finder->projection($this->projection);
         }
 
-        if ($simpleKey) {
-            $internal = key($this->key);
-            $external = current($this->key);
-            $filter = [];
-            foreach ($items as &$item) {
-                $filter[] = $item[$internal];
-                $map[$item[$internal]][] = &$item;
+        if ($data instanceof Entity) {
+            if ($simpleKey) {
+                $internal = key($this->key);
+                $external = current($this->key);
+                $filter = [$external => $data[$internal]];
+            } else {
+                $filter = [];
+                foreach ($this->key as $internal => $external) {
+                    $filter[$external] = $data[$internal];
+                }
             }
-            $filter = ['in', $external, array_unique($filter)];
+            $data[$field] = $finder->and($filter)->fetch()->one();
 
-            $founds = $finder->and($filter)->fetch();
+        } elseif ($data instanceof Collection) {
+            $map = [];
 
-            foreach ($founds as $found) {
-                $idx = $found[$external];
-                if (isset($map[$idx])) {
-                    foreach ($map[$idx] as &$item) {
-                        if (!isset($item[$field]))
-                            $item[$field] = $found;
+            if ($simpleKey) {
+                $internal = key($this->key);
+                $external = current($this->key);
+                $filter = [];
+                foreach ($data as $item) {
+                    $filter[] = $item[$internal];
+                    $item[$field] = null;
+                    $map[$item[$internal]][] = $item;
+                }
+                $filter = ['in', $external, array_unique($filter)];
+
+                $founds = $finder->and($filter)->fetch();
+
+                foreach ($founds as $found) {
+                    $idx = $found[$external];
+                    if (isset($map[$idx])) {
+                        foreach ($map[$idx] as &$item) {
+                            if (!isset($item[$field]))
+                                $item[$field] = $found;
+                        }
                     }
                 }
-            }
 
-        } else {
-            $filter = ['or'];
-            $i = 0;
-            foreach ($items as &$item) {
-                $idx = '';
-                foreach ($this->key as $internal => $external) {
-                    $idx .= $item[$internal] . ':';
-                    $filter[++$i][$external] = $item[$internal];
+            } else {
+                $filter = ['or'];
+                $i = 0;
+                foreach ($data as $item) {
+                    $idx = '';
+                    foreach ($this->key as $internal => $external) {
+                        $idx .= $item[$internal] . "\t";
+                        $filter[++$i][$external] = $item[$internal];
+                    }
+                    $map[$idx][] = $item;
                 }
-                $map[$idx][] = &$item;
-            }
 
-            $founds = $finder->and($filter)->fetch();
+                $founds = $finder->and($filter)->fetch();
 
-            foreach ($founds as $found) {
-                $idx = '';
-                foreach ($this->key as $internal => $external) {
-                    $idx .= $found[$external] . ':';
-                }
-                if (isset($map[$idx])) {
-                    foreach ($map[$idx] as &$item) {
-                        if (!isset($item[$field]))
-                            $item[$field] = $found;
+                foreach ($founds as $found) {
+                    $idx = '';
+                    foreach ($this->key as $internal => $external) {
+                        $idx .= $found[$external] . "\t";
+                    }
+                    if (isset($map[$idx])) {
+                        foreach ($map[$idx] as &$item) {
+                            if (!isset($item[$field]))
+                                $item[$field] = $found;
+                        }
                     }
                 }
-            }
 
+            }
         }
-
-        return $items;
     }
 }

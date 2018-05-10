@@ -6,8 +6,8 @@ namespace Helper;
 // all public methods declared in helper class will be available in $I
 
 use Codeception\Module\Db;
-use vivace\db\sql\Mysql;
-use vivace\db\sql\Pgsql;
+use vivace\db\sql;
+use vivace\db\sql\Driver;
 use vivace\db\sql\Storage;
 
 class Functional extends \Codeception\Module
@@ -30,10 +30,10 @@ class Functional extends \Codeception\Module
         $provider = \Codeception\Lib\Driver\Db::getProvider($config['dsn']);
         switch ($provider) {
             case 'mysql';
-                $driver = new Mysql($pdo);
+                $driver = new sql\MySQL\Driver($pdo);
                 break;
             case 'pgsql':
-                $driver = new Pgsql($pdo);
+                $driver = new sql\PostgreSQL\Driver($pdo);
                 break;
             default:
                 throw new \Exception("Unexpected environment: $provider");

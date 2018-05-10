@@ -6,17 +6,17 @@
  * Time: 17:49
  */
 
-namespace vivace\db;
+namespace vivace\db\sql;
 
 
-interface Reader extends \IteratorAggregate, \Countable
+interface Fetcher extends \IteratorAggregate, \Countable
 {
     /**
      * @return array|null
      */
-    public function one(): ?Entity;
+    public function one(): ?array;
 
-    public function all(): Collection;
+    public function all(): array;
 
     public function count(): int;
 

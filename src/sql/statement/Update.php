@@ -9,27 +9,21 @@
 namespace vivace\db\sql\statement;
 
 
-final class Update
+final class Update implements Modifier
 {
     /**
      * @var string
      */
-    public $table;
+    public $source;
     public $set = [];
     public $where;
     public $limit;
     public $offset;
     public $order;
 
-    public function __construct(string $table, array $set)
+    public function __construct(string $source, array $set)
     {
-        $this->table = $table;
+        $this->source = $source;
         $this->set = $set;
-    }
-
-    public function set(array $data): Update
-    {
-        $this->set = $data;
-        return $this;
     }
 }

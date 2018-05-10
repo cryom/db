@@ -1,9 +1,9 @@
 version: "3.3"
 
 services:
-  php72:
+  php:
     build:
-      dockerfile: docker/php/72/Dockerfile
+      dockerfile: docker/php/71/Dockerfile
       context: .
     volumes:
       - .:/app

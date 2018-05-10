@@ -1,7 +1,7 @@
 version: "3.3"
 
 services:
-  php72:
+  php:
     environment:
       XDEBUG_CONFIG: remote_host=192.168.31.182
       PHP_IDE_CONFIG: serverName=debug

@@ -10,85 +10,136 @@ namespace vivace\db\sql;
 
 
 use Traversable;
+use vivace\db\Relation;
 use vivace\db\Schema;
 
 class Reader implements \vivace\db\Reader
 {
+    const BUFFER_LENGTH = 100;
     /**
-     * @var \Traversable
+     * @var \vivace\db\sql\Fetcher
      */
-    protected $iterator;
+    protected $fetcher;
     /**
-     * @var \vivace\db\Schema
+     * @var \vivace\db\sql\Storage
      */
-    protected $schema;
+    protected $storage;
     /**
-     * @var \vivace\db\sql\Driver
+     * @var Driver
      */
     protected $driver;
-
+    /**
+     * @var array
+     */
+    protected $projection;
+    /** @var \vivace\db\Relation[] */
+    protected $relation = [];
 
     /**
      * Caster constructor.
      *
-     * @param \Traversable $iterator
-     * @param \vivace\db\Schema $schema
-     * @param \vivace\db\sql\Driver $driver
+     * @param \vivace\db\sql\Fetcher $fetcher
+     * @param \vivace\db\sql\Storage $storage
+     * @param array $projection
      */
-    public function __construct(Traversable $iterator, Schema $schema, Driver $driver)
+    public function __construct(Fetcher $fetcher, Storage $storage, array $projection)
     {
-        $this->iterator = $iterator;
-        $this->schema = $schema;
-        $this->driver = $driver;
+        $this->fetcher = $fetcher;
+        $this->storage = $storage;
+        $this->projection = $projection;
+        foreach ($projection as $key => $value) {
+            if ($value instanceof Relation) {
+                $this->relation[$key] = $value;
+            }
+        }
     }
 
     /**
      * @return \Generator|\Traversable
+     * @throws \Exception
      */
     public function getIterator()
     {
-        foreach ($this->iterator as $item) {
-            yield $this->cast($item);
+        if ($this->relation) {
+            foreach ($this->chunks() as $data) {
+                $data = $this->storage->collection($data);
+                foreach ($this->relation as $field => $relation) {
+                    $relation->populate($data, $field);
+                }
+                yield from $data;
+            }
+        } else {
+            foreach ($this->fetcher as $item) {
+                $item = $this->normalize($item);
+                yield $this->storage->entity()->restore($this->projection, $item);
+            }
         }
+
     }
 
-    protected function cast(array $item)
+    protected function chunks()
     {
-        foreach ($item as $name => &$value) {
-            if (!$this->schema->has($name) || ($value === null && $this->schema->get($name)->isNullable())) {
-                continue;
+        $items = [];
+        $i = 0;
+        foreach ($this->fetcher as $item) {
+            $items[] = $item;
+            if (++$i % self::BUFFER_LENGTH === 0) {
+                yield $items;
+                $items = [];
             }
-            $value = $this->driver->typecastOut($this->schema->get($name), $value);
         }
-
-        return $item;
+        if ($items) {
+            yield $items;
+        }
     }
 
     /**
      * @return array|null
+     * @throws \Exception
      */
-    public function one(): ?array
+    public function one(): ?\vivace\db\Entity
     {
-        if ($this->iterator instanceof \vivace\db\Reader) {
-            return $this->cast($this->iterator->one());
+        $item = $this->fetcher->one();
+        $item = $this->normalize($item);
+
+        $item = $this->storage->entity()->restore($this->projection, $item);
+        foreach ($this->relation as $field => $relation) {
+            $relation->populate($item, $field);
         }
-        foreach ($this->iterator as $item) {
-            return $item;
-        }
+        return $item;
     }
 
-    public function all(): array
+    /**
+     * @param array $data
+     *
+     * @return array
+     * @throws \Exception
+     */
+    protected function normalize(array $data): array
     {
-        return iterator_to_array($this);
+        $schema = $this->storage->schema();
+        foreach ($data as $key => &$value) {
+            if (is_string($this->projection[$key])) {
+                $key = $this->projection[$key];
+            }
+            $value = $this->storage->driver()->typecastOut($schema->get($key), $value);
+        }
+
+        return $data;
+    }
+
+    public function all(): \vivace\db\Collection
+    {
+        $data = iterator_to_array($this);
+        $data = $this->storage->collection($data);
+        foreach ($this->relation as $field => $relation) {
+            $relation->populate($data, $field);
+        }
+        return $data;
     }
 
     public function count(): int
     {
-        return iterator_count($this->iterator);
-    }
-
-    public function chunk(int $size): \vivace\db\Reader
-    {
-        return new Chunker($this, $size);
+        return $this->fetcher->count();
     }
 }

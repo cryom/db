@@ -11,10 +11,16 @@ namespace vivace\db;
 
 class Exception extends \Exception
 {
-    const STATEMENT_NOT_EXPECTED = 100100;
+    const INVALID_STATEMENT = 100100;
+    const INVALID_PROJECTION = 200100;
 
-    public static function statementNotExpected(string $message)
+    public static function invalidStatement(string $message)
     {
-        return new Exception($message, self::STATEMENT_NOT_EXPECTED);
+        return new Exception($message, self::INVALID_STATEMENT);
+    }
+
+    public static function invalidProjection(string $message)
+    {
+        return new Exception($message, self::INVALID_PROJECTION);
     }
 }

@@ -42,6 +42,11 @@ interface Storage
     public function sort(array $sort);
 
     /**
+     * @return array
+     */
+    public function getProjection(): array;
+
+    /**
      * @param array $map
      *
      * @return \vivace\db\Finder
@@ -60,6 +65,12 @@ interface Storage
     public function fetch();
 
     /**
+     * @param array $data
+     *
+     * @return int
+     */
+    public function update(array $data);
+    /**
      * @param array $key Assoc array, when key is foreign key and value is field from this storage
      *
      * @return \vivace\db\Relation\Single
@@ -73,6 +84,17 @@ interface Storage
      */
     public function many(array $key);
 
-    public function schema(): Schema;
+    /**
+     * @param array $data
+     *
+     * @return \vivace\db\Entity
+     */
+    public function entity(array $data = []): Entity;
 
+    /**
+     * @param \vivace\db\Entity[] $entities
+     *
+     * @return \vivace\db\Collection
+     */
+    public function collection(array $entities = []): Collection;
 }
