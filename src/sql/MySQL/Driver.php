@@ -13,11 +13,23 @@ use vivace\db\Exception;
 use vivace\db\sql\Field;
 use vivace\db\sql\statement;
 
+/**
+ * Class Driver
+ *
+ * @package vivace\db\sql\MySQL
+ *
+ * @example
+ * $pdo = new \PDO(<dsn>, <user>m <pass>);
+ * $driver = new \vivace\db\sql\MySQL\Driver($pdo);
+ * $storage = new \vivace\db\sql\Storage($driver, 'user');
+ * // Now storage is ready for use...
+ */
 final class Driver extends \vivace\db\sql\Driver
 {
 
     const VERSION = '1';
     const QUERY_COLUMN =
+        /** @lang MySQL */
         'SELECT
           ORDINAL_POSITION                  as `position`,
           COLUMN_NAME                       as `name`,

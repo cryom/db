@@ -12,7 +12,18 @@ namespace vivace\db\sql\PostgreSQL;
 use vivace\db\Exception;
 use vivace\db\sql\statement;
 
-
+/**
+ * Class Driver
+ *
+ * @package vivace\db\sql\PostgreSQL
+ *
+ * @example
+ * $pdo = new \PDO(<dsn>, <user>m <pass>);
+ * $driver = new \vivace\db\sql\PostgreSQL\Driver($pdo);
+ * $storage = new \vivace\db\sql\Storage($driver, 'user');
+ * // Now storage is ready for use...
+ *
+ */
 final class Driver extends \vivace\db\sql\Driver
 {
 

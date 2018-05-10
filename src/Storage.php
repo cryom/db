@@ -47,10 +47,10 @@ interface Storage
     public function getProjection(): array;
 
     /**
-     * @param array $map
+     * @param array $map Assoc array
      *
      * @return \vivace\db\Finder
-     * @example projection(['user_id' => 'id', 'is_active' => 'isActive'])
+     * @example $finder->projection(['user_id' => 'id', 'is_active' => false])
      */
     public function projection(array $map);
 

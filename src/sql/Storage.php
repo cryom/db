@@ -20,7 +20,7 @@ class Storage implements \vivace\db\Storage
     /**
      * @var \PDO
      */
-    protected $adapter;
+    protected $driver;
     /**
      * @var string
      */
@@ -33,13 +33,13 @@ class Storage implements \vivace\db\Storage
     /**
      * Source constructor.
      *
-     * @param Driver $adapter
+     * @param Driver $driver
      * @param string $source
      * @param array $schema
      */
-    public function __construct(Driver $adapter, string $source, array $schema = [])
+    public function __construct(Driver $driver, string $source, array $schema = [])
     {
-        $this->adapter = $adapter;
+        $this->driver = $driver;
         $this->source = $source;
         $this->schema = $schema;
     }
@@ -99,7 +99,7 @@ class Storage implements \vivace\db\Storage
 
     public function driver(): Driver
     {
-        return $this->adapter;
+        return $this->driver;
     }
 
     /**
