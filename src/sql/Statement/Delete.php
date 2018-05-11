@@ -6,13 +6,13 @@
  * Time: 15:44
  */
 
-namespace vivace\db\sql\statement;
+namespace vivace\db\sql\Statement;
 
 
 final class Delete implements Modifier
 {
     /** @var string */
-    public $from;
+    public $source;
     /** @var array */
     public $where;
     /** @var int */
@@ -22,11 +22,12 @@ final class Delete implements Modifier
 
     /**
      * Delete constructor.
-     * @param string $from
+     *
+     * @param string $source
      */
-    public function __construct(string $from)
+    public function __construct(string $source)
     {
-        $this->from = $from;
+        $this->source = $source;
     }
 
 }

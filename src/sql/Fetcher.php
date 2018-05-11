@@ -20,4 +20,8 @@ interface Fetcher extends \IteratorAggregate, \Countable
 
     public function count(): int;
 
+    /**
+     * @return int|string|float
+     */
+    public function scalar();
 }

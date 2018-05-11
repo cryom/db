@@ -11,8 +11,10 @@ namespace vivace\db\sql;
 use vivace\db\Relation;
 use vivace\db\Reader;
 use vivace\db\mixin;
-use vivace\db\sql\statement\Select;
-use vivace\db\sql\statement\Update;
+use vivace\db\sql\Statement\Count;
+use vivace\db\sql\Statement\Delete;
+use vivace\db\sql\Statement\Select;
+use vivace\db\sql\Statement\Update;
 
 class Finder implements \vivace\db\Finder
 {
@@ -199,7 +201,66 @@ class Finder implements \vivace\db\Finder
      */
     public function update(array $data): int
     {
+        $schema = $this->storage()->schema();
         $query = new Update($this->storage()->getSource(), $data);
+
+        if ($this->projection) {
+            $copyData = [];
+            foreach ($query->set as $name => $value) {
+                if (isset($this->projection[$name]) && is_string($this->projection[$name])) {
+                    $name = $this->projection[$name];
+                }
+                $field = $schema->get($name);
+                $copyData[$name] = $this->storage()->driver()->typecastIn($field, $value);
+            }
+            $query->set = $copyData;
+
+            if ($this->filter) {
+                $query->where = $this->normalizeFilter($this->projection, $this->filter);
+            }
+            if ($this->sort) {
+                $query->order = $this->normalizeSort($this->projection, $this->sort);
+            }
+        }
+
+        $query->limit = $this->limit;
+        $query->offset = $this->skip;
+
+        return $this->storage()->driver()->execute($query);
+    }
+
+    /**
+     * Delete found rows
+     *
+     * @return int Number deleted rows
+     * @see \vivace\db\Storage::delete()
+     * @throws \Exception
+     */
+    public function delete(): int
+    {
+        $query = new Delete($this->storage()->getSource());
+        $query->limit = $this->limit;
+        $query->offset = $this->skip;
+        if ($this->filter) {
+            $query->where = $this->normalizeFilter($this->projection, $this->filter);
+        }
+        if ($this->sort) {
+            $query->order = $this->normalizeSort($this->projection, $this->sort);
+        }
+
+        return $this->storage()->driver()->execute($query);
+    }
+
+    /**
+     * Count found entities
+     *
+     * @return int
+     * @see \vivace\db\Storage::count()
+     * @throws \Exception
+     */
+    public function count(): int
+    {
+        $query = new Count($this->storage()->getSource());
 
         if ($this->filter) {
             $query->where = $this->normalizeFilter($this->projection, $this->filter);
@@ -207,9 +268,10 @@ class Finder implements \vivace\db\Finder
         if ($this->sort) {
             $query->order = $this->normalizeSort($this->projection, $this->sort);
         }
+
         $query->limit = $this->limit;
         $query->offset = $this->skip;
 
-        return $this->storage()->driver()->execute($query);
+        return (int)$this->storage()->driver()->fetch($query)->scalar();
     }
 }

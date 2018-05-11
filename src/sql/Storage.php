@@ -190,8 +190,26 @@ class Storage implements \vivace\db\Storage
      * @inheritdoc
      * @throws \Exception
      */
-    public function update(array $data)
+    public function update(array $data): int
     {
         return $this->find()->update($data);
+    }
+
+    /**
+     * @return int
+     * @throws \Exception
+     */
+    public function delete(): int
+    {
+        return $this->find()->delete();
+    }
+
+    /**
+     * @return int
+     * @throws \Exception
+     */
+    public function count(): int
+    {
+        return $this->find()->count();
     }
 }

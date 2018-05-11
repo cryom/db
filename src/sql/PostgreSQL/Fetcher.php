@@ -130,5 +130,19 @@ class Fetcher implements \vivace\db\sql\Fetcher
     {
         $this->close();
         $this->stmt = null;
+        $this->executed = false;
+    }
+
+    /**
+     * @inheritdoc
+     * @throws \Exception
+     */
+    public function scalar()
+    {
+        $this->execute();
+        $result = $this->stmt->fetch(\PDO::FETCH_NUM);
+        $this->close();
+
+        return $result[0] ?? null;
     }
 }

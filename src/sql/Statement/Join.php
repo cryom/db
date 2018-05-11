@@ -6,7 +6,7 @@
  * Time: 21:54
  */
 
-namespace vivace\db\sql\statement;
+namespace vivace\db\sql\Statement;
 
 
 final class Join

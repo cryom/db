@@ -293,12 +293,12 @@ class StorageCest
      * @throws \Codeception\Exception\ModuleException
      * @throws \Exception
      */
-    public function checkUpdate(FunctionalTester $I)
+    public function update(FunctionalTester $I)
     {
         $foo = $I->createStorage('foo');
 
         $vorder = 77;
-        $vtype = 'ittype';
+        $vtype = 'case1';
 
         $affected = $foo->update(['type' => $vtype, 'order' => $vorder]);
 
@@ -320,23 +320,14 @@ class StorageCest
 
         $I->assertSame($vorder, $data[4]['order']);
         $I->assertSame($vtype, $data[4]['type']);
-    }
 
-    /**
-     * @param \FunctionalTester $I
-     *
-     * @throws \Codeception\Exception\ModuleException
-     * @throws \Exception
-     */
-    public function checkUpdateWithCondition(FunctionalTester $I)
-    {
-        $foo = $I->createStorage('foo');
         $finder = $foo->sort(['id' => -1])->skip(1)->limit(2);
 
-        $vorder = 77;
-        $vtype = 'ittype';
+        $vorder = 78;
+        $vtype = 'case2';
 
-        $affected = $finder->update(['type' => $vtype, 'order' => $vorder]);
+        $affected = $finder->projection(['typeAlias'=> 'type'])
+            ->update(['typeAlias' => $vtype, 'order' => $vorder]);
 
         $I->assertSame(2, $affected);
 
@@ -353,5 +344,41 @@ class StorageCest
 
         $I->assertNotSame($vorder, $data[3]['order']);
         $I->assertNotSame($vtype, $data[3]['type']);
+    }
+
+
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
+     */
+    public function count(FunctionalTester $I)
+    {
+        $foo = $I->createStorage('multi_pk');
+        $I->assertEquals(6, $foo->count());
+        $I->assertEquals(1, $foo->filter(['>', 'id', 2])->count());
+        $I->assertEquals(3, $foo->sort(['id' => 1])->skip(1)->limit(3)->count());
+    }
+
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
+     */
+    public function delete(FunctionalTester $I)
+    {
+        $foo = $I->createStorage('multi_pk');
+
+        $affected = $foo->sort(['id' => 1])->limit(2)->delete();
+        $I->assertEquals(2, $affected);
+        $affected = $foo->sort(['id' => -1])->skip(2)->delete();
+        $I->assertEquals(2, $affected);
+        $affected = $foo->filter(['tag' => '1-3'])->delete();
+        $I->assertEquals(1, $affected);
+        $data = $foo->fetch()->one();
+        $I->assertEquals('2-2', $data['tag']);
+
     }
 }

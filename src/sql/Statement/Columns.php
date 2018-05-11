@@ -6,7 +6,7 @@
  * Time: 16:42
  */
 
-namespace vivace\db\sql\statement;
+namespace vivace\db\sql\Statement;
 
 
 final class Columns implements Read

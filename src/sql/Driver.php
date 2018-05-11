@@ -9,27 +9,27 @@
 namespace vivace\db\sql;
 
 
-use vivace\db\sql\statement\Columns;
+use vivace\db\sql\Statement\Columns;
 
 abstract class Driver
 {
     protected $schemas;
 
     /**
-     * @param \vivace\db\sql\statement\Statement|array $statement
+     * @param \vivace\db\sql\Statement\Statement|array $statement
      *
      * @return array [string $query, array $params]
      */
     abstract public function build($statement): array;
 
     /**
-     * @param \vivace\db\sql\statement\Read $query
+     * @param \vivace\db\sql\Statement\Read $query
      *
      * @return \vivace\db\sql\Fetcher
      */
-    abstract public function fetch(statement\Read $query): Fetcher;
+    abstract public function fetch(Statement\Read $query): Fetcher;
 
-    abstract public function execute(statement\Modifier $query): int;
+    abstract public function execute(Statement\Modifier $query): int;
 
     /**
      * Type casting for the value passed to the store
@@ -130,6 +130,11 @@ abstract class Driver
                         {
                             return (bool)$this->field['primary'];
                         }
+
+                        public function isUnique(): bool
+                        {
+                            return (bool)$this->field['unique'];
+                        }
                     };
                 }
             }
@@ -175,6 +180,19 @@ abstract class Driver
             public function getNames(): array
             {
                 return array_keys($this->fields);
+            }
+
+            /** @inheritdoc */
+            public function getUnique(): ?array
+            {
+                $result = [];
+                foreach ($this->fields as $name => $field) {
+                    if ($field->isUnique()) {
+                        $result[$name] = $field;
+                    }
+                }
+
+                return $result;
             }
         };
     }

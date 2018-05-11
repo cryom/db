@@ -19,6 +19,8 @@ interface Field
 
     public function isPrimary(): bool;
 
+    public function isUnique(): bool;
+
     public function getName(): string;
 
     public function getType(): string;

@@ -65,11 +65,23 @@ interface Storage
     public function fetch();
 
     /**
+     * Update all entities
+     *
      * @param array $data
      *
      * @return int
+     * @example $storage->update(['type' => 'some', 'parent_id' => 9]);
      */
-    public function update(array $data);
+    public function update(array $data): int;
+
+    public function delete(): int;
+
+    /**
+     * Total number of entities
+     * @return int
+     */
+    public function count(): int;
+
     /**
      * @param array $key Assoc array, when key is foreign key and value is field from this storage
      *

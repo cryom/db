@@ -2,14 +2,16 @@
 /**
  * Created by PhpStorm.
  * User: macbookpro
- * Date: 15.02.2018
- * Time: 18:45
+ * Date: 11.05.2018
+ * Time: 1:42
  */
 
-namespace vivace\db\sql\statement;
+namespace vivace\db\sql\Statement;
 
-final class Select implements Read
+
+final class Count implements Read
 {
+    public $column;
     /** @var string */
     public $source;
     /** @var Join[] */
@@ -19,17 +21,16 @@ final class Select implements Read
     /** @var int */
     public $limit;
     public $offset;
-    public $having;
     public $order;
-    public $projection;
 
     /**
-     * Select constructor.
+     * Count constructor.
      *
      * @param string $source
      */
-    public function __construct($source)
+    public function __construct(string $source)
     {
         $this->source = $source;
     }
+
 }

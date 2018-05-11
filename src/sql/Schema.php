@@ -16,6 +16,8 @@ interface Schema extends \IteratorAggregate, \Countable
      */
     public function getPrimary(): ?array;
 
+    public function getUnique(): ?array;
+
     /**
      * @param string $key
      *

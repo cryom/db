@@ -11,7 +11,7 @@ namespace vivace\db\sql\MySQL;
 
 use vivace\db\Exception;
 use vivace\db\sql\Field;
-use vivace\db\sql\statement;
+use vivace\db\sql\Statement;
 
 /**
  * Class Driver
@@ -36,6 +36,7 @@ final class Driver extends \vivace\db\sql\Driver
           COLUMN_DEFAULT                    as `default`,
           IF(IS_NULLABLE = "YES", 1, 0) as `nullable`,
           IF(COLUMN_KEY=\'PRI\', 1, 0)    as `primary`,
+          IF(COLUMN_KEY=\'UNI\', 1, 0)    as `unique`,
           DATA_TYPE                         as innerType,
           CASE DATA_TYPE
           WHEN \'bit\'
@@ -129,14 +130,89 @@ final class Driver extends \vivace\db\sql\Driver
         }
     }
 
+    protected function count(array &$stack, Statement\Count $statement)
+    {
+        if ($statement->limit || $statement->offset || $statement->order || $statement->join) {
+            self::literal($stack, 'SELECT COUNT(*) FROM (');
+            $sub = new Statement\Select($statement->source);
+            $sub->order = $statement->order;
+            $sub->where = $statement->where;
+            $sub->limit = $statement->limit;
+            $sub->offset = $statement->offset;
+            $schema = $this->schema($statement->source);
+            if ($pk = $schema->getPrimary() ?? $schema->getUnique()) {
+                foreach ($pk as $field) {
+                    $sub->projection[] = $field->getName();
+                }
+            } else {
+                $sub->projection = $schema->getNames();
+            }
+            self::select($stack, $sub);
+            self::literal($stack, ') count_sub');
+        } else {
+            self::literal($stack, 'SELECT COUNT(*) FROM ');
+            self::identifier($stack, $statement->source);
+            if ($statement->where) {
+                self::literal($stack, ' WHERE ');
+                self::condition($stack, $statement->where);
+            }
+        }
+    }
 
-    protected function update(array &$stack, statement\Update $statement)
+    protected function delete(array &$stack, Statement\Delete $statement)
+    {
+        if ($statement->offset) {
+
+
+            self::literal($stack, 'DELETE FROM ');
+            self::identifier($stack, $statement->source);
+            self::literal($stack, ' WHERE ');
+            self::literal($stack, '(');
+
+            $sub = new Statement\Select($statement->source);
+            $sub->order = $statement->order;
+            $sub->where = $statement->where;
+            $sub->limit = $statement->limit;
+            $sub->offset = $statement->offset;
+
+            $schema = $this->schema($statement->source);
+            $columns = [];
+            if ($keys = $schema->getPrimary() ?? $schema->getUnique()) {
+                foreach ($keys as $field) {
+                    $columns[] = $field->getName();
+                    $sub->projection[] = $field->getName();
+                }
+            } else {
+                $sub->projection[] = $columns = $schema->getNames();
+            }
+
+            foreach ($columns as $i => $column) {
+                if ($i > 0)
+                    self::literal($stack, ', ');
+                self::identifier($stack, $column);
+            }
+            self::literal($stack, ') IN (SELECT * FROM (');
+            self::select($stack, $sub);
+            self::literal($stack, ') X0_a)');
+        } else {
+            self::literal($stack, 'DELETE FROM ');
+            self::identifier($stack, $statement->source);
+            if ($statement->where) {
+                self::literal($stack, ' WHERE ');
+                self::condition($stack, $statement->where);
+            }
+            self::order($stack, $statement->order);
+            self::limit($stack, $statement->limit, null);
+        }
+    }
+
+    protected function update(array &$stack, Statement\Update $statement)
     {
         self::literal($stack, 'UPDATE ');
         if ($statement->offset) {
             self::identifier($stack, $statement->source);
             self::literal($stack, 'X0_dst, (');
-            $select = new statement\Select($statement->source);
+            $select = new Statement\Select($statement->source);
             $select->where = $statement->where;
             $select->offset = $statement->offset;
             $select->limit = $statement->limit;
@@ -194,7 +270,7 @@ final class Driver extends \vivace\db\sql\Driver
 
     }
 
-    protected static function columns(array &$stack, statement\Columns $statement)
+    protected static function columns(array &$stack, Statement\Columns $statement)
     {
         if (strpos($statement->sourceName, '.') !== false) {
             [$db, $table] = array_map(function ($val) {
@@ -208,16 +284,16 @@ final class Driver extends \vivace\db\sql\Driver
         ]));
     }
 
-    protected static function join(array &$stack, statement\Join $statement)
+    protected static function join(array &$stack, Statement\Join $statement)
     {
         switch ($statement->type) {
-            case statement\Join::LEFT:
+            case Statement\Join::LEFT:
                 self::literal($stack, ' LEFT JOIN ');
                 break;
-            case statement\Join::RIGHT:
+            case Statement\Join::RIGHT:
                 self::literal($stack, ' RIGHT JOIN ');
                 break;
-            case statement\Join::INNER:
+            case Statement\Join::INNER:
                 self::literal($stack, ' INNER JOIN ');
                 break;
         }
@@ -226,7 +302,7 @@ final class Driver extends \vivace\db\sql\Driver
         self::condition($stack, $statement->on);
     }
 
-    protected static function select(array &$stack, statement\Select $statement)
+    protected static function select(array &$stack, Statement\Select $statement)
     {
         self::literal($stack, 'SELECT ');
 
@@ -327,7 +403,7 @@ final class Driver extends \vivace\db\sql\Driver
     }
 
     /**
-     * @param \vivace\db\sql\statement\Statement|array $statement
+     * @param \vivace\db\sql\Statement\Statement|array $statement
      * @param array $params
      *
      * @return array
@@ -402,18 +478,26 @@ final class Driver extends \vivace\db\sql\Driver
                     self::literal($stack, ' AND ');
                     self::value($stack, $statement[3]);
                     break;
-                case statement\Select::class:
-                    /** @var \vivace\db\sql\statement\Select $statement */
+                case Statement\Select::class:
+                    /** @var \vivace\db\sql\Statement\Select $statement */
                     self::select($stack, $statement);
                     break;
 
-                case statement\Columns::class:
-                    /** @var \vivace\db\sql\statement\Columns $statement */
+                case Statement\Columns::class:
+                    /** @var \vivace\db\sql\Statement\Columns $statement */
                     self::columns($stack, $statement);
                     break;
-                case statement\Update::class:
-                    /** @var \vivace\db\sql\statement\Update $statement */
+                case Statement\Update::class:
+                    /** @var \vivace\db\sql\Statement\Update $statement */
                     $this->update($stack, $statement);
+                    break;
+                case Statement\Count::class:
+                    /** @var \vivace\db\sql\Statement\Count $statement */
+                    $this->count($stack, $statement);
+                    break;
+                case Statement\Delete::class:
+                    /** @var \vivace\db\sql\Statement\Delete $statement */
+                    $this->delete($stack, $statement);
                     break;
                 default:
                     throw Exception::invalidStatement("Not expected statement " . $kind);
@@ -425,12 +509,12 @@ final class Driver extends \vivace\db\sql\Driver
     }
 
     /**
-     * @param \vivace\db\sql\statement\Read $query
+     * @param \vivace\db\sql\Statement\Read $query
      *
      * @return Fetcher
      * @throws \Exception
      */
-    public function fetch(statement\Read $query): \vivace\db\sql\Fetcher
+    public function fetch(Statement\Read $query): \vivace\db\sql\Fetcher
     {
         [$sql, $params] = $this->build($query);
 
@@ -438,12 +522,12 @@ final class Driver extends \vivace\db\sql\Driver
     }
 
     /**
-     * @param \vivace\db\sql\statement\Modifier $query
+     * @param \vivace\db\sql\Statement\Modifier $query
      *
      * @return int
      * @throws \Exception
      */
-    public function execute(statement\Modifier $query): int
+    public function execute(Statement\Modifier $query): int
     {
         [$sql, $params] = $this->build($query);
         if ($params) {

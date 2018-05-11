@@ -102,4 +102,21 @@ VALUES (
   1, 2, 3, 4.1,4.2,4.3,4.4,10.3, 'char_var', 'char', 'text',
   '123', '2017-01-01 22:01:02', '2017-01-01 22:01:03',
   '2017-01-01', '22:01:02', '22:01:03', '35', FALSE , 'two'
-)
+);
+
+
+CREATE TABLE multi_pk (
+  id   INTEGER,
+  type INTEGER,
+  tag  VARCHAR(10),
+  PRIMARY KEY (id, type)
+);
+
+INSERT INTO multi_pk (id, type, tag)
+VALUES
+  (1, 2, '1-2'),
+  (2, 2, '2-2'),
+  (1, 3, '1-3'),
+  (2, 1, '2-1'),
+  (3, 3, '1-3'),
+  (2, 3, '2-2')

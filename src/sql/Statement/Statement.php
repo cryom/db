@@ -6,7 +6,7 @@
  * Time: 18:50
  */
 
-namespace vivace\db\sql\statement;
+namespace vivace\db\sql\Statement;
 
 
 interface Statement

@@ -58,7 +58,7 @@ CREATE TABLE type_table (
   `mediumint`  MEDIUMINT,
   `integer`    INTEGER,
   `bigint`     BIGINT,
-  `decimal`    DECIMAL(5,4),
+  `decimal`    DECIMAL(5, 4),
   `float`      FLOAT,
   `double`     DOUBLE,
   `date`       DATE,
@@ -108,8 +108,24 @@ INSERT INTO type_table (
   `varbinary`
 ) VALUES (
   1, 2, 1, 4, 5, 7, 8, 9.3, 9.4, 9.5,
-  '2017-01-02', '2017-01-02 00:00:00',
-  '2017-01-02 00:00:01', '00:00:01', 2017, 'varchar', 'char', 'text',
-  'a', 'a,b', 'tinyblob',
+     '2017-01-02', '2017-01-02 00:00:00',
+                   '2017-01-02 00:00:01', '00:00:01', 2017, 'varchar', 'char', 'text',
+                   'a', 'a,b', 'tinyblob',
   'blob', 'mediumblob', 'longblob', 'binary', 'varbinary'
-)
+);
+
+CREATE TABLE multi_pk (
+  id   INTEGER,
+  type INTEGER,
+  tag  VARCHAR(10),
+  PRIMARY KEY (id, type)
+);
+
+INSERT INTO multi_pk (id, type, tag)
+VALUES
+  (1, 2, '1-2'),
+  (2, 2, '2-2'),
+  (1, 3, '1-3'),
+  (2, 1, '2-1'),
+  (3, 3, '1-3'),
+  (2, 3, '2-2')

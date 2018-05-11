@@ -6,7 +6,7 @@
  * Time: 17:51
  */
 
-namespace vivace\db\sql\statement;
+namespace vivace\db\sql\Statement;
 
 
 final class Update implements Modifier

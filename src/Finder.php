@@ -51,6 +51,30 @@ interface Finder extends Filtrable
      */
     public function fetch();
 
+    /**
+     * Update found entities
+     *
+     * @param array $data
+     *
+     * @return int Number updated rows
+     * @see \vivace\db\Storage::update()
+     */
     public function update(array $data): int;
+
+    /**
+     * Delete found entities
+     *
+     * @return int Number deleted rows
+     * @see \vivace\db\Storage::delete()
+     */
+    public function delete(): int;
+
+    /**
+     * Count found entities
+     *
+     * @return int
+     * @see \vivace\db\Storage::count()
+     */
+    public function count(): int;
 
 }
