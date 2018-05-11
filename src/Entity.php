@@ -14,4 +14,9 @@ interface Entity extends \ArrayAccess, Data
     public function projection(array $projection): Entity;
 
     public function restore(array $projection, array $data): Entity;
+
+    /**
+     * @throws \Exception
+     */
+    public function save():bool;
 }

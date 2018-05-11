@@ -181,7 +181,7 @@ class Finder implements \vivace\db\Finder
             if (is_bool($value) && $value) {
                 $query->projection[] = $key;
             } elseif (is_string($value)) {
-                $query->projection[$value] = $key;
+                $query->projection[] = $value;
             } elseif ($value instanceof Relation) {
                 $relations[$key] = $value;
             }

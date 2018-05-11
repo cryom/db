@@ -87,7 +87,6 @@ class StorageCest
         $I->assertInstanceOf(\vivace\db\Collection::class, $data);
         $I->assertCount(2, $data);
 
-        $I->assertArrayNotHasKey('baz_id', $data[0]);
         $I->assertArrayHasKey('name', $data[0]);
         $I->assertArrayHasKey('bazID', $data[0]);
         $I->assertArrayHasKey('IDENTIFIER', $data[0]);
@@ -326,7 +325,7 @@ class StorageCest
         $vorder = 78;
         $vtype = 'case2';
 
-        $affected = $finder->projection(['typeAlias'=> 'type'])
+        $affected = $finder->projection(['typeAlias' => 'type'])
             ->update(['typeAlias' => $vtype, 'order' => $vorder]);
 
         $I->assertSame(2, $affected);
@@ -344,6 +343,7 @@ class StorageCest
 
         $I->assertNotSame($vorder, $data[3]['order']);
         $I->assertNotSame($vtype, $data[3]['type']);
+
     }
 
 
@@ -380,5 +380,27 @@ class StorageCest
         $data = $foo->fetch()->one();
         $I->assertEquals('2-2', $data['tag']);
 
+    }
+
+    /**
+     * @param \FunctionalTester $I
+     *
+     * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
+     */
+    public function save(FunctionalTester $I)
+    {
+        $foo = $I->createStorage('foo');
+        $finder = $foo->projection([
+            'typeAlias' => 'type'
+        ]);
+        $entity = $finder->fetch()->one();
+        $entity['typeAlias'] = 'ABC';
+        $entity['order'] = 88;
+
+        $I->assertTrue($entity->save());
+
+        $count = $finder->filter(['typeAlias' => 'ABC', 'order' => '88'])->count();
+        $I->assertSame(1, $count);
     }
 }
