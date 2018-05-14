@@ -69,6 +69,8 @@ interface Storage
      */
     public function update(array $data): int;
 
+    public function save(array $data): bool;
+
     public function delete(): int;
 
     /**

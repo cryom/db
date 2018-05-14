@@ -211,7 +211,11 @@ final class Driver extends \vivace\db\sql\Driver
             self::literal($stack, ' (');
             foreach ($values as $j => $value) {
                 if ($j) self::literal($stack, ', ');
-                self::value($stack, $value);
+                if ($value instanceof Statement\Expression\DefaultValue) {
+                    self::literal($stack, ' DEFAULT');
+                } else {
+                    self::value($stack, $value);
+                }
             }
             self::literal($stack, ')');
         }
@@ -225,7 +229,8 @@ final class Driver extends \vivace\db\sql\Driver
                 self::identifier($stack, $field->getName());
             }
             self::literal($stack, ') DO UPDATE SET ');
-            foreach ($statement->columns as $column) {
+            foreach ($statement->columns as $i => $column) {
+                if ($i) self::literal($stack, ', ');
                 self::identifier($stack, $column);
                 self::literal($stack, ' = EXCLUDED.');
                 self::identifier($stack, $column);

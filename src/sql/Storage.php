@@ -11,8 +11,8 @@ namespace vivace\db\sql;
 
 use vivace\db\mixin\Projection;
 use vivace\db\Reader;
-use vivace\db\Relation\Many;
-use vivace\db\Relation\Single;
+use vivace\db\sql\Statement\Expression\DefaultValue;
+use vivace\db\sql\Statement\Insert;
 
 class Storage implements \vivace\db\Storage
 {
@@ -166,5 +166,50 @@ class Storage implements \vivace\db\Storage
     public function count(): int
     {
         return $this->find()->count();
+    }
+
+    /**
+     * @param array $data
+     *
+     * @return bool
+     */
+    public function save(array $data): bool
+    {
+        $columns = [];
+        $values = [];
+
+        $multiple = isset($data[0]);
+        if ($multiple && count($data) == 1) {
+            $multiple = false;
+            $data = $data[0];
+        }
+
+        if ($multiple) {
+            foreach ($data as $i => $row) {
+                foreach ($row as $name => $value) {
+                    $idx = $columns[$name] ?? $columns[$name] = count($columns);
+                    $values[$i][$idx] = $value;
+                }
+            }
+            foreach ($columns as $name => $idx) {
+                foreach ($values as &$value) {
+                    if (!isset($value[$idx])) {
+                        $value[$idx] = new DefaultValue();
+                    }
+                }
+            }
+            foreach ($values as &$value) {
+                ksort($value);
+            }
+            $columns = array_keys($columns);
+        } else {
+            $columns = array_keys($data);
+            $values[] = array_values($data);
+        }
+
+        $query = new Insert($this->getSource(), $columns, $values);
+        $query->update = true;
+
+        return (bool)$this->driver()->execute($query)->getInsertedId();
     }
 }

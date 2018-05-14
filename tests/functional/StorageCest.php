@@ -413,57 +413,28 @@ class StorageCest
      * @throws \Codeception\Exception\ModuleException
      * @throws \Exception
      */
-    private function save(FunctionalTester $I)
+    public function save(FunctionalTester $I)
     {
         $foo = $I->createStorage('foo');
 
+        $count = $foo->count();
+        $result = $foo->save(['id' => 1, 'name' => 'ABX']);
+        $I->assertTrue($result);
+        $I->assertEquals($count, $foo->count());
 
-        $finder = $foo->projection([
-            'typeAlias' => 'type'
+        $result = $foo->save([
+            ['id' => 1, 'name' => 'ABX1'],
+            ['name' => 'ABX2', 'is_enabled' => true]
         ]);
-        $existsEntity = $finder->fetch()->one();
+        $I->assertTrue($result);
+        $I->assertEquals($count + 1, $foo->count());
 
-        $I->wantTo('Save exists without changes entity');
-        $I->assertFalse($existsEntity->save());
+        $items = $foo->filter(['in', 'name', ['ABX1', 'ABX2']])->sort(['name' => 1])->fetch()->all();
+        $I->assertCount(2, $items);
 
-        $existsEntity['typeAlias'] = 'ABC';
-        $existsEntity['order'] = 88;
+        $I->assertSame('ABX1', $items[0]['name']);
+        $I->assertSame(1, $items[0]['id']);
 
-        $I->wantTo('Save exists with changes entity');
-        $I->assertTrue($existsEntity->save());
-
-        $count = $finder->filter(['typeAlias' => 'ABC', 'order' => '88'])->count();
-        $I->assertSame(1, $count);
-
-        $newEntity = $foo->entity([
-            'type' => 'ABCD',
-            'order' => 88
-        ]);
-        $collection[] = $newEntity;
-
-        $I->wantTo('Save new entity');
-        $I->assertTrue($newEntity->save());
-        $I->assertArrayHasKey('id', $newEntity);
-
-        $count = $finder->filter(['type' => 'ABCD', 'order' => '88'])->count();
-        $I->assertSame(1, $count);
-
-        $I->wantTo('Save empty entity');
-        $emptyEntity = $foo->entity();
-        $I->assertFalse($emptyEntity->save());
-
-        $I->wantTo('Save collection with entities in different states(exists,empty,new)');
-        $collection = $foo->collection();
-
-        $existsEntity['type'] = 'ABX';
-        $emptyEntity['type'] = 'ABX';
-        $newEntity['type'] = 'ABX';
-
-        $collection[] = $existsEntity;
-        $collection[] = $emptyEntity;
-        $collection[] = $newEntity;
-        $collection[] = $foo->entity(['type' => 'ABX', 'order' => 99]);
-
-        $I->assertTrue($collection->save());
+        $I->assertSame('ABX2', $items[1]['name']);
     }
 }
