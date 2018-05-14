@@ -16,7 +16,9 @@ use vivace\db\sql\Statement\Insert;
 
 class Storage implements \vivace\db\Storage
 {
-    use Projection;
+    use Projection {
+        projection as protected projection_;
+    }
     /**
      * @var \PDO
      */
@@ -44,13 +46,21 @@ class Storage implements \vivace\db\Storage
         $this->source = $source;
     }
 
-    protected function getProjection(): array
+    protected function getDefaultProjection(): array
     {
         $schema = $this->schema();
         return array_combine(
             $schema->getNames(),
             array_pad([], count($schema), true)
         );
+    }
+
+    public function projection(?array $projection)
+    {
+        if (!$this->projection) {
+            $this->projection = $this->getDefaultProjection();
+        }
+        return $this->projection_($projection);
     }
 
     /**
@@ -81,10 +91,10 @@ class Storage implements \vivace\db\Storage
      */
     public function find()
     {
-        $finder = new Finder($this);
-        if ($this->projection || $this->projection = $this->getProjection()) {
-            $finder = $finder->projection($this->projection);
+        if (!$this->projection) {
+            $this->projection = $this->getDefaultProjection();
         }
+        $finder = new Finder($this, $this->projection);
         return $finder;
     }
 
@@ -177,6 +187,7 @@ class Storage implements \vivace\db\Storage
         $columns = [];
         $values = [];
 
+
         $multiple = isset($data[0]);
         if ($multiple && count($data) == 1) {
             $multiple = false;
@@ -186,6 +197,9 @@ class Storage implements \vivace\db\Storage
         if ($multiple) {
             foreach ($data as $i => $row) {
                 foreach ($row as $name => $value) {
+                    if ($this->projection && isset($this->projection[$name]) && is_string($this->projection[$name])) {
+                        $name = $this->projection[$name];
+                    }
                     $idx = $columns[$name] ?? $columns[$name] = count($columns);
                     $values[$i][$idx] = $value;
                 }
@@ -203,6 +217,11 @@ class Storage implements \vivace\db\Storage
             $columns = array_keys($columns);
         } else {
             $columns = array_keys($data);
+            foreach ($columns as &$column) {
+                if ($this->projection && isset($this->projection[$column]) && is_string($this->projection[$column])) {
+                    $column = $this->projection[$column];
+                }
+            }
             $values[] = array_values($data);
         }
 

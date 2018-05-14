@@ -422,8 +422,8 @@ class StorageCest
         $I->assertTrue($result);
         $I->assertEquals($count, $foo->count());
 
-        $result = $foo->save([
-            ['id' => 1, 'name' => 'ABX1'],
+        $result = $foo->projection(['nameAlias' => 'name'])->save([
+            ['id' => 1, 'nameAlias' => 'ABX1'],
             ['name' => 'ABX2', 'is_enabled' => true]
         ]);
         $I->assertTrue($result);

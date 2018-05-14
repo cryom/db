@@ -28,9 +28,10 @@ class Finder implements \vivace\db\Finder
     protected $storage;
 
 
-    public function __construct(Storage $storage)
+    public function __construct(Storage $storage, array $projection = [])
     {
         $this->storage = $storage;
+        $this->projection = $projection;
     }
 
     /**
