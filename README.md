@@ -71,7 +71,10 @@ $users = $userStorage
 
 #### Updating.
 ```php
-$ok = $userStorage->skip(100)->update(['career' => 'actor']);
+$ok = $userStorage
+    ->sort(['id' => -1])// Sorting by `id` in descending order
+    ->skip(100)// skip first 100 found rows
+    ->update(['career' => 'actor']);
 ```
 
 
