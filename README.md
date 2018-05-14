@@ -28,7 +28,7 @@ $pdo = new \PDO('dsn', 'user', 'pass');
 $driver = new \vivace\db\sql\PostrgeSQL\Driver($pdo);
 ```
 
-Now must initialize storage objects.
+Initialize storage objects.
 ```php
 $users = new \vivace\db\sql\Storage($driver, 'users');
 ```
