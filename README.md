@@ -57,7 +57,7 @@ And save changes in storage.
 $ok = $userStorage->save($user);
 ```
 
-A couple more examples.
+### More examples.
 
 
 #### Filtering.
