@@ -14,6 +14,7 @@ final class Insert implements Modifier
     public $source;
     public $columns = [];
     public $values = [];
+    public $update = false;
 
     /**
      * Insert constructor.

@@ -21,7 +21,16 @@ interface Field
 
     public function isUnique(): bool;
 
+    public function isNullable(): bool;
+
+    public function isDefault(): bool;
+
+    public function isAutoincrement():bool;
+
+    public function getDefault();
+
     public function getName(): string;
 
     public function getType(): string;
+
 }

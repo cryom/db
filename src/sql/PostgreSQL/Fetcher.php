@@ -9,6 +9,8 @@
 namespace vivace\db\sql\PostgreSQL;
 
 
+use vivace\db\Exception;
+
 class Fetcher implements \vivace\db\sql\Fetcher
 {
     /** @var \PDOStatement */
@@ -35,7 +37,7 @@ class Fetcher implements \vivace\db\sql\Fetcher
     }
 
     /**
-     * @throws \Exception
+     * @throws Exception
      */
     protected function execute()
     {
@@ -59,7 +61,7 @@ class Fetcher implements \vivace\db\sql\Fetcher
         if (!$this->executed) {
             if (!$this->stmt->execute()) {
                 [$sqlstate, $driverCode, $text] = $this->stmt->errorInfo();
-                throw new \Exception("SQLSTATE[$sqlstate]: ($driverCode) $text", $sqlstate);
+                throw Exception::onExecuting("SQLSTATE[$sqlstate]: ($driverCode) $text");
             }
             $this->executed = true;
         }
@@ -84,7 +86,7 @@ class Fetcher implements \vivace\db\sql\Fetcher
         $result = $this->stmt->fetch(\PDO::FETCH_ASSOC);
         $this->close();
 
-        return $result;
+        return $result !== false ? $result : null;
     }
 
     /**

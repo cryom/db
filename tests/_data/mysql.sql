@@ -24,31 +24,35 @@ VALUES
 CREATE TABLE bar (
   id     BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   name   VARCHAR(30),
-  baz_id INTEGER UNSIGNED
+  baz_id INTEGER UNSIGNED,
+  baz_name VARCHAR(10),
+  baz_type VARCHAR(10)
 );
 INSERT INTO
   bar
-  (name, baz_id)
+  (name, baz_id, baz_name, baz_type)
 VALUES
-  ('bar_1', 3),
-  ('bar_2', 2),
-  ('bar_3', 3),
-  ('bar_4', 4);
+  ('bar_1', 3,'baz_1', 'g_2'),
+  ('bar_2', 2,'baz_2', 'g_1'),
+  ('bar_3', 3,'baz_1', 'g_2'),
+  ('bar_4', 4,'baz_4', 'g_2');
 
 
 CREATE TABLE baz (
   id   BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(30)
+  name VARCHAR(30),
+  type VARCHAR(30)
 );
 
 INSERT INTO
   baz
-  (name)
+  (name, type)
 VALUES
-  ('baz_1'),
-  ('baz_2'),
-  ('baz_3'),
-  ('baz_4');
+  ('baz_1', 'g_2'),
+  ('baz_2', 'g_1'),
+  ('baz_2', 'g_1'),
+  ('baz_3', 'g_2'),
+  ('baz_4', 'g_1');
 
 CREATE TABLE type_table (
   bit          BIT,

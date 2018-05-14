@@ -22,33 +22,37 @@ VALUES
 
 
 CREATE TABLE bar (
-  id     SERIAL PRIMARY KEY,
-  name   VARCHAR(30) DEFAULT 'bar_0',
-  baz_id INTEGER
+  id       SERIAL PRIMARY KEY,
+  name     VARCHAR(30) DEFAULT 'bar_0',
+  baz_id   INTEGER,
+  baz_name VARCHAR(10),
+  baz_type VARCHAR(10)
 );
 INSERT INTO
   bar
-  (name, baz_id)
+  (name, baz_id, baz_name, baz_type)
 VALUES
-  ('bar_1', 3),
-  ('bar_2', 2),
-  ('bar_3', 3),
-  ('bar_4', 4);
+  ('bar_1', 3,'baz_1', 'g_2'),
+  ('bar_2', 2,'baz_2', 'g_1'),
+  ('bar_3', 3,'baz_1', 'g_2'),
+  ('bar_4', 4,'baz_4', 'g_2');
 
 
 CREATE TABLE baz (
   id   SERIAL PRIMARY KEY,
-  name VARCHAR(30)
+  name VARCHAR(30),
+  type VARCHAR(30)
 );
 
 INSERT INTO
   baz
-  (name)
+  (name, type)
 VALUES
-  ('baz_1'),
-  ('baz_2'),
-  ('baz_3'),
-  ('baz_4');
+  ('baz_1', 'g_2'),
+  ('baz_2', 'g_1'),
+  ('baz_2', 'g_1'),
+  ('baz_3', 'g_2'),
+  ('baz_4', 'g_1');
 
 CREATE TYPE test_enum as ENUM ('one', 'two');
 CREATE TABLE type_table (
@@ -63,8 +67,8 @@ CREATE TABLE type_table (
   serial            SERIAL,
   bigserial         BIGSERIAL,
   money             MONEY,
-  char_var character varying,
-  char         CHARACTER(10),
+  char_var          character varying,
+  char              CHARACTER(10),
   text              TEXT,
   bytea             BYTEA,
   timestamp         timestamp,
@@ -99,9 +103,9 @@ INSERT INTO type_table (
   boolean,
   enum)
 VALUES (
-  1, 2, 3, 4.1,4.2,4.3,4.4,10.3, 'char_var', 'char', 'text',
+  1, 2, 3, 4.1, 4.2, 4.3, 4.4, 10.3, 'char_var', 'char', 'text',
   '123', '2017-01-01 22:01:02', '2017-01-01 22:01:03',
-  '2017-01-01', '22:01:02', '22:01:03', '35', FALSE , 'two'
+  '2017-01-01', '22:01:02', '22:01:03', '35', FALSE, 'two'
 );
 
 

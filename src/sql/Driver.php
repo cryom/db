@@ -29,7 +29,7 @@ abstract class Driver
      */
     abstract public function fetch(Statement\Read $query): Fetcher;
 
-    abstract public function execute(Statement\Modifier $query): int;
+    abstract public function execute(Statement\Modifier $query): Result;
 
     /**
      * Type casting for the value passed to the store
@@ -84,6 +84,12 @@ abstract class Driver
         return $value;
     }
 
+    /**
+     * @param string $source
+     * @param bool $refresh
+     *
+     * @return \vivace\db\sql\Schema|\vivace\db\sql\Field[]
+     */
     public function schema(string $source, bool $refresh = false): Schema
     {
         if (!$refresh && isset($this->schemas[$source])) {
@@ -99,11 +105,17 @@ abstract class Driver
         {
             /** @var Field[] */
             protected $fields = [];
+            /** @var \vivace\db\sql\Field|null */
+            protected $autoincrement;
+            /** @var \vivace\db\sql\Field[] */
+            protected $primary = [];
+            /** @var \vivace\db\sql\Field[] */
+            protected $unique = [];
 
-            public function __construct($fields)
+            public function __construct($fieldsArr)
             {
-                foreach ($fields as $name => $field) {
-                    $this->fields[$name] = new class($field) implements Field
+                foreach ($fieldsArr as $name => $fieldArr) {
+                    $field = new class($fieldArr) implements Field
                     {
                         /**
                          * @var array
@@ -135,8 +147,46 @@ abstract class Driver
                         {
                             return (bool)$this->field['unique'];
                         }
+
+                        public function isNullable(): bool
+                        {
+                            return (bool)$this->field['nullable'];
+                        }
+
+                        public function isDefault(): bool
+                        {
+                            return $this->field['default'] !== null || $this->isNullable();
+                        }
+
+                        public function isAutoincrement(): bool
+                        {
+                            return (bool)$this->field['autoincrement'];
+                        }
+
+                        public function getDefault()
+                        {
+                            return $this->field['default'];
+                        }
+
+
                     };
+
+                    if ($field->isAutoincrement()) {
+                        $this->autoincrement = $field;
+                    }
+                    if ($field->isPrimary()) {
+                        $this->primary[] = $field;
+                    }
+                    if ($field->isUnique()) {
+                        $this->unique[] = $field;
+                    }
+                    $this->fields[$name] = $field;
                 }
+            }
+
+            public function getAutoincrement(): ?Field
+            {
+                return $this->autoincrement;
             }
 
 
@@ -149,14 +199,7 @@ abstract class Driver
             /** @inheritdoc */
             public function getPrimary(): ?array
             {
-                $result = [];
-                foreach ($this->fields as $name => $field) {
-                    if ($field->isPrimary()) {
-                        $result[$name] = $field;
-                    }
-                }
-
-                return $result;
+                return $this->primary;
             }
 
             /** @inheritdoc */
@@ -185,17 +228,9 @@ abstract class Driver
             /** @inheritdoc */
             public function getUnique(): ?array
             {
-                $result = [];
-                foreach ($this->fields as $name => $field) {
-                    if ($field->isUnique()) {
-                        $result[$name] = $field;
-                    }
-                }
-
-                return $result;
+                return $this->unique;
             }
         };
     }
-
 }
 

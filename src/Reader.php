@@ -14,9 +14,9 @@ interface Reader extends \IteratorAggregate, \Countable
     /**
      * @return array|null
      */
-    public function one(): ?Entity;
+    public function one(): ?array;
 
-    public function all(): Collection;
+    public function all(): array;
 
     public function count(): int;
 

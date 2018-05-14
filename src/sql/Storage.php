@@ -9,14 +9,14 @@
 namespace vivace\db\sql;
 
 
-use vivace\db\Collection;
-use vivace\db\Entity;
+use vivace\db\mixin\Projection;
 use vivace\db\Reader;
 use vivace\db\Relation\Many;
 use vivace\db\Relation\Single;
 
 class Storage implements \vivace\db\Storage
 {
+    use Projection;
     /**
      * @var \PDO
      */
@@ -30,25 +30,22 @@ class Storage implements \vivace\db\Storage
      */
     protected $schema;
 
+    protected $projection;
+
     /**
      * Source constructor.
      *
      * @param Driver $driver
      * @param string $source
-     * @param array $schema
      */
-    public function __construct(Driver $driver, string $source, array $schema = [])
+    public function __construct(Driver $driver, string $source)
     {
         $this->driver = $driver;
         $this->source = $source;
-        $this->schema = $schema;
+        $this->projection = $this->getProjection();
     }
 
-    /**
-     * @return array
-     * @throws \Exception
-     */
-    public function getProjection(): array
+    protected function getProjection(): array
     {
         $schema = $this->schema();
         return array_combine(
@@ -86,8 +83,8 @@ class Storage implements \vivace\db\Storage
     public function find()
     {
         $finder = new Finder($this);
-        if ($projection = $this->getProjection()) {
-            $finder = $finder->projection($projection);
+        if ($this->projection) {
+            $finder = $finder->projection($this->projection);
         }
         return $finder;
     }
@@ -127,23 +124,12 @@ class Storage implements \vivace\db\Storage
     /**
      * @param bool $refresh
      *
-     * @return \vivace\db\sql\Schema
+     * @return \vivace\db\sql\Schema|\vivace\db\sql\Field[]
      */
     public function schema(bool $refresh = false): Schema
     {
         $source = $this->getSource();
         return $this->driver()->schema($source, $refresh);
-    }
-
-    /**
-     * @param array $map
-     *
-     * @return \vivace\db\sql\Finder
-     * @throws \Exception
-     */
-    public function projection(array $map)
-    {
-        return $this->find()->projection($map);
     }
 
     /**
@@ -153,37 +139,6 @@ class Storage implements \vivace\db\Storage
     public function fetch(): Reader
     {
         return $this->find()->fetch();
-    }
-
-    public function single(array $key): Single
-    {
-        return new Relation\Single($this, $key);
-    }
-
-    public function many(array $key): Many
-    {
-        return new Relation\Many($this, $key);
-    }
-
-    /**
-     * @param array $data
-     *
-     * @return \vivace\db\Entity
-     * @throws \Exception
-     */
-    public function entity(array $data = []): Entity
-    {
-        return new \vivace\db\sql\Entity($this, $this->getProjection(), $data);
-    }
-
-    /**
-     * @param \vivace\db\Entity[] $entities
-     *
-     * @return \vivace\db\Collection
-     */
-    public function collection(array $entities = []): Collection
-    {
-        return new \vivace\db\sql\Collection($this, $entities);
     }
 
     /**

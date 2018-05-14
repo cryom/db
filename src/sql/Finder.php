@@ -81,7 +81,7 @@ class Finder implements \vivace\db\Finder
      * @return array
      * @throws \Exception
      */
-    protected function normalizeFilter(array $projection, array $filter): array
+    protected function normalizeFilter(?array $projection, array $filter): array
     {
         if (!$filter) {
             return $filter;
@@ -92,7 +92,7 @@ class Finder implements \vivace\db\Finder
         if (!isset($filter[0])) {
             $normalized = [];
             foreach ($filter as $key => $value) {
-                $key = is_string($projection[$key]) ? $projection[$key] : $key;
+                $key = $projection && is_string($projection[$key]) ? $projection[$key] : $key;
                 $normalized[$key] = $this->storage()->driver()->typecastIn($schema->get($key), $value);
             }
             return $normalized;
@@ -105,7 +105,7 @@ class Finder implements \vivace\db\Finder
             case '>=':
             case '<=':
             case '!=':
-                if (is_string($projection[$filter[1]])) {
+                if ($projection && is_string($projection[$filter[1]])) {
                     $filter[1] = $projection[$filter[1]];
                 }
                 $property = $schema->get($filter[1]);
@@ -119,16 +119,31 @@ class Finder implements \vivace\db\Finder
                 }
                 break;
             case 'in':
-                if (is_string($projection[$filter[1]])) {
-                    $filter[1] = $projection[$filter[1]];
+                if (is_array($filter[1])) {
+                    foreach ($filter[1] as $i => &$column) {
+
+                        if ($projection && is_string($projection[$column])) {
+                            $column = $projection[$column];
+                        }
+                        $property = $schema->get($column);
+
+                        foreach ($filter[2] as &$values) {
+                            $values[$i] = $this->storage()->driver()->typecastIn($property, $values[$i]);
+                        }
+                    }
+                } else {
+                    if ($projection && is_string($projection[$filter[1]])) {
+                        $filter[1] = $projection[$filter[1]];
+                    }
+                    $property = $schema->get($filter[1]);
+                    foreach ($filter[2] as &$value) {
+                        $value = $this->storage()->driver()->typecastIn($property, $value);
+                    }
                 }
-                $property = $schema->get($filter[1]);
-                foreach ($filter[2] as &$value) {
-                    $value = $this->storage()->driver()->typecastIn($property, $value);
-                }
+
                 break;
             case 'between':
-                if (is_string($projection[$filter[1]])) {
+                if ($projection && is_string($projection[$filter[1]])) {
                     $filter[1] = $projection[$filter[1]];
                 }
                 $property = $schema->get($filter[1]);
@@ -146,11 +161,11 @@ class Finder implements \vivace\db\Finder
      *
      * @return array
      */
-    protected function normalizeSort(array $projection, array $sort): array
+    protected function normalizeSort(?array $projection, array $sort): array
     {
         $new = [];
         foreach ($sort as $key => $value) {
-            if (is_string($projection[$key])) {
+            if ($projection && is_string($projection[$key])) {
                 $key = $projection[$key];
             }
             $new[$key] = $value;
@@ -176,16 +191,14 @@ class Finder implements \vivace\db\Finder
 
         $query->limit = $this->limit;
         $query->offset = $this->skip;
-        $relations = [];
-        foreach ($this->projection as $key => $value) {
-            if (is_bool($value) && $value) {
-                $query->projection[] = $key;
-            } elseif (is_string($value)) {
-                $query->projection[] = $value;
-            } elseif ($value instanceof Relation) {
-                $relations[$key] = $value;
+        if ($this->projection)
+            foreach ($this->projection as $key => $value) {
+                if (is_bool($value) && $value) {
+                    $query->projection[] = $key;
+                } elseif (is_string($value)) {
+                    $query->projection[$value] = $key;
+                }
             }
-        }
 
         $reader = $this->storage()->driver()->fetch($query);
         $reader = new \vivace\db\sql\Reader($reader, $this->storage(), $this->projection);
@@ -226,7 +239,7 @@ class Finder implements \vivace\db\Finder
         $query->limit = $this->limit;
         $query->offset = $this->skip;
 
-        return $this->storage()->driver()->execute($query);
+        return (int)$this->storage()->driver()->execute($query)->getAffected();
     }
 
     /**
@@ -248,7 +261,7 @@ class Finder implements \vivace\db\Finder
             $query->order = $this->normalizeSort($this->projection, $this->sort);
         }
 
-        return $this->storage()->driver()->execute($query);
+        return (int)$this->storage()->driver()->execute($query)->getAffected();
     }
 
     /**

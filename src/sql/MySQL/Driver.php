@@ -11,6 +11,7 @@ namespace vivace\db\sql\MySQL;
 
 use vivace\db\Exception;
 use vivace\db\sql\Field;
+use vivace\db\sql\Result;
 use vivace\db\sql\Statement;
 
 /**
@@ -38,6 +39,7 @@ final class Driver extends \vivace\db\sql\Driver
           IF(COLUMN_KEY=\'PRI\', 1, 0)    as `primary`,
           IF(COLUMN_KEY=\'UNI\', 1, 0)    as `unique`,
           DATA_TYPE                         as innerType,
+          IF(EXTRA=\'auto_increment\', 1, 0) as autoincrement,
           CASE DATA_TYPE
           WHEN \'bit\'
             THEN \'int\'
@@ -155,6 +157,44 @@ final class Driver extends \vivace\db\sql\Driver
             if ($statement->where) {
                 self::literal($stack, ' WHERE ');
                 self::condition($stack, $statement->where);
+            }
+        }
+    }
+
+    protected function insert(array &$stack, Statement\Insert $statement)
+    {
+        self::literal($stack, 'INSERT INTO ');
+        self::identifier($stack, $statement->source);
+        self::literal($stack, ' (');
+        foreach ($statement->columns as $i => $column) {
+            if ($i) self::literal($stack, ', ');
+            self::identifier($stack, $column);
+        }
+        self::literal($stack, ') VALUES ');
+        foreach ($statement->values as $i => $values) {
+            if ($i) self::literal($stack, ', ');
+            self::literal($stack, ' (');
+            foreach ($values as $j => $value) {
+                if ($j) self::literal($stack, ', ');
+                if ($value instanceof Statement\Expression\DefaultValue) {
+                    self::literal($stack, ' DEFAULT');
+                } else {
+                    self::value($stack, $value);
+                }
+            }
+            self::literal($stack, ')');
+        }
+
+        if ($statement->update) {
+            self::literal($stack, ' ON DUPLICATE KEY UPDATE ');
+            $columns = $statement->columns;
+            foreach ($columns as $i => $column) {
+                if ($i) self::literal($stack, ', ');
+                self::identifier($stack, $column);
+                self::literal($stack, '=');
+                self::literal($stack, 'VALUES(');
+                self::identifier($stack, $column);
+                self::literal($stack, ')');
             }
         }
     }
@@ -422,7 +462,7 @@ final class Driver extends \vivace\db\sql\Driver
             } elseif (is_object($statement)) {
                 $kind = get_class($statement);
             } else {
-                throw new Exception("Not expected statement type", Exception::INVALID_STATEMENT);
+                throw new Exception("Not expected statement type", Exception::BUILDING);
             }
             switch ($kind) {
                 case self::OP_LITERAL:
@@ -466,10 +506,32 @@ final class Driver extends \vivace\db\sql\Driver
                     self::literal($stack, ')');
                     break;
                 case 'in':
-                    self::identifier($stack, $statement[1]);
-                    self::literal($stack, ' IN(');
-                    self::value($stack, $statement[2]);
-                    self::literal($stack, ')');
+                    if (is_array($statement[1])) {
+                        self::literal($stack, '(');
+                        foreach ($statement[1] as $i => $c) {
+                            if ($i) self::literal($stack, ',');
+                            self::identifier($stack, $c);
+                        }
+                        self::literal($stack, ') IN(');
+                        foreach ($statement[2] as $i => $val) {
+                            if ($i)
+                                self::literal($stack, ', (');
+                            else
+                                self::literal($stack, '(');
+                            foreach ($val as $j => $v) {
+                                if ($j) self::literal($stack, ',');
+                                self::value($stack, $v);
+                            }
+                            self::literal($stack, ')');
+                        }
+                        self::literal($stack, ')');
+
+                    } else {
+                        self::identifier($stack, $statement[1]);
+                        self::literal($stack, ' IN(');
+                        self::value($stack, $statement[2]);
+                        self::literal($stack, ')');
+                    }
                     break;
                 case 'between':
                     self::identifier($stack, $statement[1]);
@@ -499,8 +561,12 @@ final class Driver extends \vivace\db\sql\Driver
                     /** @var \vivace\db\sql\Statement\Delete $statement */
                     $this->delete($stack, $statement);
                     break;
+                case Statement\Insert::class:
+                    /** @var \vivace\db\sql\Statement\Insert $statement */
+                    $this->insert($stack, $statement);
+                    break;
                 default:
-                    throw Exception::invalidStatement("Not expected statement " . $kind);
+                    throw Exception::onBuilding("Not expected statement " . $kind);
             }
         } while ($statement = array_pop($stack));
 
@@ -524,10 +590,10 @@ final class Driver extends \vivace\db\sql\Driver
     /**
      * @param \vivace\db\sql\Statement\Modifier $query
      *
-     * @return int
+     * @return Result
      * @throws \Exception
      */
-    public function execute(Statement\Modifier $query): int
+    public function execute(Statement\Modifier $query): Result
     {
         [$sql, $params] = $this->build($query);
         if ($params) {
@@ -553,8 +619,26 @@ final class Driver extends \vivace\db\sql\Driver
             $affected = $this->pdo->exec($sql);
         }
 
-        return (int)$affected;
+        return new class($this->pdo->lastInsertId(), $affected) implements Result
+        {
+            protected $insertedId;
+            protected $affected;
+
+            public function __construct($insertedId, $affected)
+            {
+                $this->insertedId = $insertedId ? (int)$insertedId : null;
+                $this->affected = $affected ? (int)$affected : null;
+            }
+
+            public function getAffected(): ?int
+            {
+                return $this->affected;
+            }
+
+            public function getInsertedId(): ?int
+            {
+                return $this->insertedId;
+            }
+        };
     }
-
-
 }

@@ -29,7 +29,7 @@ class Reader implements \vivace\db\Reader
      */
     protected $driver;
     /**
-     * @var array
+     * @var array|null
      */
     protected $projection;
     /** @var \vivace\db\Relation[] */
@@ -42,16 +42,18 @@ class Reader implements \vivace\db\Reader
      * @param \vivace\db\sql\Storage $storage
      * @param array $projection
      */
-    public function __construct(Fetcher $fetcher, Storage $storage, array $projection)
+    public function __construct(Fetcher $fetcher, Storage $storage, ?array $projection)
     {
         $this->fetcher = $fetcher;
         $this->storage = $storage;
         $this->projection = $projection;
-        foreach ($projection as $key => $value) {
-            if ($value instanceof Relation) {
-                $this->relation[$key] = $value;
+
+        if ($projection)
+            foreach ($projection as $key => $value) {
+                if ($value instanceof Relation) {
+                    $this->relation[$key] = $value;
+                }
             }
-        }
     }
 
     /**
@@ -61,48 +63,39 @@ class Reader implements \vivace\db\Reader
     public function getIterator()
     {
         if ($this->relation) {
-            foreach ($this->chunks() as $data) {
-                $data = $this->storage->collection($data);
-                foreach ($this->relation as $field => $relation) {
-                    $relation->populate($data, $field);
+            $items = [];
+            $total = $this->fetcher->count() - 1;
+            foreach ($this->fetcher as $i => $item) {
+                $item = $this->normalize($item);
+                $items[] = $item;
+                if ($total == $i || ($i + 1) % self::BUFFER_LENGTH === 0) {
+                    foreach ($this->relation as $field => $relation) {
+                        $relation->populate($items, $field);
+                    }
+                    yield from $items;
+                    $items = [];
                 }
-                yield from $data;
             }
         } else {
             foreach ($this->fetcher as $item) {
                 $item = $this->normalize($item);
-                yield $this->storage->entity()->restore($this->projection, $item);
+                yield $item;
             }
         }
 
-    }
-
-    protected function chunks()
-    {
-        $items = [];
-        $i = 0;
-        foreach ($this->fetcher as $item) {
-            $items[] = $item;
-            if (++$i % self::BUFFER_LENGTH === 0) {
-                yield $items;
-                $items = [];
-            }
-        }
-        if ($items) {
-            yield $items;
-        }
     }
 
     /**
      * @return array|null
      * @throws \Exception
      */
-    public function one(): ?\vivace\db\Entity
+    public function one(): ?array
     {
-        $item = $this->fetcher->one();
+        if(!$item = $this->fetcher->one()){
+            return $item;
+        }
         $item = $this->normalize($item);
 
-        $item = $this->storage->entity()->restore($this->projection, $item);
         foreach ($this->relation as $field => $relation) {
             $relation->populate($item, $field);
         }
@@ -128,10 +121,16 @@ class Reader implements \vivace\db\Reader
         return $data;
     }
 
-    public function all(): \vivace\db\Collection
+    /**
+     * @return array
+     * @throws \Exception
+     */
+    public function all(): array
     {
-        $data = iterator_to_array($this);
-        $data = $this->storage->collection($data);
+        $data = $this->fetcher->all();
+        foreach ($data as &$item) {
+            $item = $this->normalize($item);
+        }
         foreach ($this->relation as $field => $relation) {
             $relation->populate($data, $field);
         }

@@ -11,5 +11,5 @@ namespace vivace\db;
 
 interface Relation
 {
-    function populate(Data $data, string $field);
+    function populate(array &$data, string $field);
 }

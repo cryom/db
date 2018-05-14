@@ -11,11 +11,17 @@ namespace vivace\db\sql;
 
 interface Schema extends \IteratorAggregate, \Countable
 {
+
+    public function getAutoincrement(): ?Field;
+
     /**
-     * @return Field[]
+     * @return array|Field[]
      */
     public function getPrimary(): ?array;
 
+    /**
+     * @return array|Field[]
+     */
     public function getUnique(): ?array;
 
     /**

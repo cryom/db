@@ -1,5 +1,7 @@
 <?php
 
+use vivace\db\Relation\Many;
+use vivace\db\Relation\Single;
 use \vivace\db\sql;
 
 class StorageCest
@@ -29,7 +31,7 @@ class StorageCest
         $bar = $I->createStorage('bar');
         $data = $bar->filter(['id' => 1])->fetch()->one();
 
-        $I->assertInstanceOf(\vivace\db\Entity::class, $data);
+        $I->assertInternalType('array', $data);
         $I->assertArrayHasKey('name', $data);
         $I->assertArrayHasKey('id', $data);
 
@@ -43,12 +45,12 @@ class StorageCest
      * @throws \Codeception\Exception\ModuleException
      * @throws \Exception
      */
-    public function fetchAllWithLimit(FunctionalTester $I, \Codeception\Scenario $scenario)
+    public function fetchAllWithLimit(FunctionalTester $I)
     {
         $bar = $I->createStorage('bar');
         $data = $bar->limit(2)->fetch()->all();
 
-        $I->assertInstanceOf(\vivace\db\Collection::class, $data);
+        $I->assertInternalType('array', $data);
         $I->assertCount(2, $data);
     }
 
@@ -73,7 +75,7 @@ class StorageCest
      * @throws \Codeception\Exception\ModuleException
      * @throws \Exception
      */
-    public function fetchAllWithProjection(FunctionalTester $I, \Codeception\Scenario $scenario)
+    public function fetchAllWithProjection(FunctionalTester $I)
     {
         $bar = $I->createStorage('bar');
         $data = $bar->projection([
@@ -84,7 +86,7 @@ class StorageCest
             ->sort(['IDENTIFIER' => -1])
             ->fetch()->all();
 
-        $I->assertInstanceOf(\vivace\db\Collection::class, $data);
+        $I->assertInternalType('array', $data);
         $I->assertCount(2, $data);
 
         $I->assertArrayHasKey('name', $data[0]);
@@ -113,14 +115,14 @@ class StorageCest
         $data = iterator_to_array($data);
 
         $I->assertArrayHasKey(0, $data);
-        $I->assertInstanceOf(\vivace\db\Entity::class, $data[0]);
+        $I->assertInternalType('array', $data[0]);
         $I->assertArrayHasKey('name', $data[0]);
         $I->assertArrayHasKey('id', $data[0]);
         $I->assertEquals(2, $data[0]['id']);
         $I->assertEquals('bar_2', $data[0]['name']);
 
         $I->assertArrayHasKey(1, $data);
-        $I->assertInstanceOf(\vivace\db\Entity::class, $data[1]);
+        $I->assertInternalType('array', $data[1]);
         $I->assertArrayHasKey('name', $data[1]);
         $I->assertArrayHasKey('id', $data[1]);
         $I->assertEquals(1, $data[1]['id']);
@@ -131,6 +133,7 @@ class StorageCest
      * @param \FunctionalTester $I
      *
      * @throws \Codeception\Exception\ModuleException
+     * @throws \Exception
      */
     public function case6(FunctionalTester $I)
     {
@@ -150,27 +153,6 @@ class StorageCest
         $I->assertEquals('6', $data[0]['type']);
         $I->assertEquals('7', $data[1]['type']);
         $I->assertEquals('4', $data[2]['type']);
-    }
-
-    /**
-     * @param \FunctionalTester $I
-     *
-     * @throws \Codeception\Exception\ModuleException
-     * @throws \Exception
-     */
-    public function case7(FunctionalTester $I)
-    {
-        $I->wantTo('Check float types');
-
-        $bar = $I->createStorage('foo');
-        $data = $bar->filter(['id' => 1])->fetch()->one();
-
-        $I->assertSame(1, $data['id']);
-        $I->assertSame('foo_1', $data['name']);
-        $I->assertSame(0.1, $data['float']);
-        $I->assertSame(0.2, $data['double']);
-        $I->assertSame(0.3, $data['decimal']);
-
     }
 
     /**
@@ -244,28 +226,71 @@ class StorageCest
      * @throws \Codeception\Exception\ModuleException
      * @throws \Exception
      */
-    public function aliasesWithRelations(FunctionalTester $I)
+    public function relation(FunctionalTester $I)
     {
         $foo = $I->createStorage('foo');
         $bar = $I->createStorage('bar');
         $baz = $I->createStorage('baz');
 
-        $finder = $foo->projection([
-            'refBarID' => 'bar_id',
-            'bar' => $bar->single(['refBarID' => 'barID'])->projection([
-                'barID' => 'id',
-                'refBazID' => 'baz_id',
-                'baz' => $baz->many(['refBazID' => 'bazID'])->projection([
-                    'bazID' => 'id'
+
+        $items = $bar->projection([
+            'barID' => 'id',
+            'rBazName' => 'baz_name',
+            'bazList' => (new Many($baz, ['rBazName' => 'bazName', 'baz_type' => 'type']))
+                ->projection([
+                    'bazName' => 'name'
+                ]),
+            'foo' => (new Single($foo, ['id' => 'bar_id']))
+                ->filter(['is_enabled' => true])
+                ->projection([
+                    'bar' => (new Single($bar, ['bar_id' => 'id']))->filter(['!=', 'id', 4])
                 ])
-            ])
-        ]);
+        ])
+            ->skip(1)
+            ->filter(['in', 'barID', [1, 2, 4]])
+            ->limit(2)
+            ->fetch()
+            ->all();
 
-        $item = $finder->filter(['refBarID' => 2])->limit(1)->fetch()->one();
 
-        $I->assertSame(2, $item['refBarID']);
-        $I->assertSame(2, $item['bar']['barID']);
-        $I->assertSame(2, $item['bar']['baz'][0]['bazID']);
+        $I->assertCount(2, $items);
+
+        $I->assertArrayHasKey('bazList', $items[0]);
+        $I->assertCount(2, $items[0]['bazList']);
+        $I->assertInternalType('array', $items[0]['bazList']);
+        $I->assertArrayHasKey('bazName', $items[0]['bazList'][1]);
+        $I->assertArrayHasKey('foo', $items[0]);
+        $I->assertArrayHasKey('bar', $items[0]['foo']);
+
+        $I->assertArrayHasKey('bazList', $items[1]);
+        $I->assertInternalType('array', $items[1]['bazList']);
+        $I->assertCount(0, $items[1]['bazList']);
+        $I->assertArrayHasKey('foo', $items[1]);
+        $I->assertArrayNotHasKey('bar', $items[1]['foo']);
+
+
+        $item = $bar->projection([
+            'barID' => 'id',
+            'rBazName' => 'baz_name',
+            'bazList' => (new Many($baz, ['rBazName' => 'bazName', 'baz_type' => 'type']))
+                ->projection([
+                    'bazName' => 'name'
+                ]),
+            'foo' => (new Single($foo, ['id' => 'bar_id']))
+                ->filter(['is_enabled' => true])
+                ->projection([
+                    'bar' => (new Single($bar, ['bar_id' => 'id']))->filter(['!=', 'id', 4])
+                ])
+        ])
+            ->filter(['in', 'barID', [4]])
+            ->fetch()
+            ->one();
+
+        $I->assertArrayHasKey('bazList', $item);
+        $I->assertInternalType('array', $item['bazList']);
+        $I->assertCount(0, $item['bazList']);
+        $I->assertArrayHasKey('foo', $item);
+        $I->assertArrayNotHasKey('bar', $item['foo']);
     }
 
     /**
@@ -388,19 +413,57 @@ class StorageCest
      * @throws \Codeception\Exception\ModuleException
      * @throws \Exception
      */
-    public function save(FunctionalTester $I)
+    private function save(FunctionalTester $I)
     {
         $foo = $I->createStorage('foo');
+
+
         $finder = $foo->projection([
             'typeAlias' => 'type'
         ]);
-        $entity = $finder->fetch()->one();
-        $entity['typeAlias'] = 'ABC';
-        $entity['order'] = 88;
+        $existsEntity = $finder->fetch()->one();
 
-        $I->assertTrue($entity->save());
+        $I->wantTo('Save exists without changes entity');
+        $I->assertFalse($existsEntity->save());
+
+        $existsEntity['typeAlias'] = 'ABC';
+        $existsEntity['order'] = 88;
+
+        $I->wantTo('Save exists with changes entity');
+        $I->assertTrue($existsEntity->save());
 
         $count = $finder->filter(['typeAlias' => 'ABC', 'order' => '88'])->count();
         $I->assertSame(1, $count);
+
+        $newEntity = $foo->entity([
+            'type' => 'ABCD',
+            'order' => 88
+        ]);
+        $collection[] = $newEntity;
+
+        $I->wantTo('Save new entity');
+        $I->assertTrue($newEntity->save());
+        $I->assertArrayHasKey('id', $newEntity);
+
+        $count = $finder->filter(['type' => 'ABCD', 'order' => '88'])->count();
+        $I->assertSame(1, $count);
+
+        $I->wantTo('Save empty entity');
+        $emptyEntity = $foo->entity();
+        $I->assertFalse($emptyEntity->save());
+
+        $I->wantTo('Save collection with entities in different states(exists,empty,new)');
+        $collection = $foo->collection();
+
+        $existsEntity['type'] = 'ABX';
+        $emptyEntity['type'] = 'ABX';
+        $newEntity['type'] = 'ABX';
+
+        $collection[] = $existsEntity;
+        $collection[] = $emptyEntity;
+        $collection[] = $newEntity;
+        $collection[] = $foo->entity(['type' => 'ABX', 'order' => 99]);
+
+        $I->assertTrue($collection->save());
     }
 }
