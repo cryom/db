@@ -37,7 +37,7 @@ Now you can use created storages for data manipulation.
 
 Save the data to your storage.
 ```php
-$ok = $users->save(['name' => 'Zoe Saldana', 'career' => 'Actor']);
+$ok = $users->save(['name' => 'Zoe Saldana', 'career' => 'actress']);
 ```
 Let's try fetch saved data from storage.
 ```php
