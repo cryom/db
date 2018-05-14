@@ -30,18 +30,18 @@ $driver = new \vivace\db\sql\PostrgeSQL\Driver($pdo);
 
 Initialize storage objects.
 ```php
-$users = new \vivace\db\sql\Storage($driver, 'users');
+$userStorage = new \vivace\db\sql\Storage($driver, 'users');
 ```
 Now you can use created storages for data manipulation.
 
 
 Save the data to your storage.
 ```php
-$ok = $users->save(['name' => 'Zoe Saldana', 'career' => 'actress']);
+$ok = $userStorage->save(['name' => 'Zoe Saldana', 'career' => 'actor', 'rating' => 4.95]);
 ```
 Let's try fetch saved data from storage.
 ```php
-$user = $users->filter(['name' => 'Zoe Saldana'])->fetch()->one();
+$user = $userStorage->filter(['name' => 'Zoe Saldana'])->fetch()->one();
 // $user is simple assoc array.
 var_dump($user);
 ```
@@ -54,7 +54,44 @@ $user['age'] = 39;
 And save changes in storage.
 
 ```php
-$ok = $users->save($user);
+$ok = $userStorage->save($user);
+```
+
+A couple more examples.
+
+
+#### Filtering.
+```php
+$users = $userStorage->limit(100)->filter(['or', ['in', 'career', ['actor', 'producer'], ['>=', 'age', 40]])->fetch();
+```
+
+
+#### Updating.
+```php
+$ok = $userStorage->skip(100)->update(['career' => 'actor']);
+```
+
+
+#### Relations.
+```php
+$userStorage = $userStorage->projection([
+    'country' => new \vivace\Relation\Single($countryStorage, ['country_id' => 'id'])
+]);
+$users = $userStorage->fetch()->all();
+foreach($users as $user){
+    if(isset($user['country'])) {
+        var_dump($user['country']);
+    }
+}
+
+```
+#### Field aliases.
+```php
+$userStorage = $userStorage->projection([
+    'rank' => 'rating'
+]);
+// Aliases are available for use in the condition.
+$user = $userStorage->filter(['between', 'rank', 4, 5])->fetch()->one();
 ```
 
 
