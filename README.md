@@ -62,7 +62,10 @@ $ok = $userStorage->save($user);
 
 #### Filtering.
 ```php
-$users = $userStorage->limit(100)->filter(['or', ['in', 'career', ['actor', 'producer'], ['>=', 'age', 40]])->fetch();
+$users = $userStorage
+    ->limit(100)
+    ->filter(['or', ['in', 'career', ['actor', 'producer'], ['>=', 'age', 40]])
+    ->fetch();
 ```
 
 
@@ -77,7 +80,9 @@ $ok = $userStorage->skip(100)->update(['career' => 'actor']);
 $userStorage = $userStorage->projection([
     'country' => new \vivace\Relation\Single($countryStorage, ['country_id' => 'id'])
 ]);
+
 $users = $userStorage->fetch()->all();
+
 foreach($users as $user){
     if(isset($user['country'])) {
         var_dump($user['country']);
@@ -90,6 +95,7 @@ foreach($users as $user){
 $userStorage = $userStorage->projection([
     'rank' => 'rating'
 ]);
+
 // Aliases are available for use in the condition.
 $user = $userStorage->filter(['between', 'rank', 4, 5])->fetch()->one();
 ```
