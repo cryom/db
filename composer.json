@@ -2,6 +2,13 @@
   "name": "vivace/db",
   "description": "ORM",
   "type": "library",
+  "keywords": [
+    "orm",
+    "database",
+    "mysql",
+    "postgres",
+    "builder"
+  ],
   "require": {
     "php": "^7.1"
   },
@@ -13,5 +20,6 @@
     "psr-4": {
       "vivace\\db\\": "src/"
     }
-  }
+  },
+  "license": "MIT"
 }
