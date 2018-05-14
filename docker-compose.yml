@@ -19,7 +19,7 @@ services:
       MYSQL_PASSWORD: test
 
   pgsql:
-    image: postgres:10
+    image: postgres:9.5
     ports:
       - "5432:5432"
     environment:

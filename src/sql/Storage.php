@@ -42,7 +42,6 @@ class Storage implements \vivace\db\Storage
     {
         $this->driver = $driver;
         $this->source = $source;
-        $this->projection = $this->getProjection();
     }
 
     protected function getProjection(): array
@@ -83,7 +82,7 @@ class Storage implements \vivace\db\Storage
     public function find()
     {
         $finder = new Finder($this);
-        if ($this->projection) {
+        if ($this->projection || $this->projection = $this->getProjection()) {
             $finder = $finder->projection($this->projection);
         }
         return $finder;
