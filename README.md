@@ -7,7 +7,7 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/996b9318332fb25f58e0/maintainability)](https://codeclimate.com/github/php-vivace/db/maintainability)
 ## Goals
 
-Create a simply orm with relationship support and flexible query builder and nothing more.
+Create a flexible query builder with relationship support and CRUD operations.
 
 ## Requirements
 - php __>= 7.1__
