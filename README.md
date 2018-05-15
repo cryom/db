@@ -73,20 +73,18 @@ $users = $userStorage
     ->fetch();
 ```
 
-#### Insering
+#### Insert/Update
 Insert one row
 ```php
 $ok = $userStorage->save(['name' => ]);
 ```
-#### Multiple insert
-Insert multiple rows
+Multiple rows
 ```php
 $ok = $userStorage->save([
     ['name' => 'Mark Rufallo'],
     ['name' => 'Chris Evans', 'rating' => 4.95],
 ]);
 ```
-#### Upsert
 Update if exists, otherwise insert
 ```php
 $ok = $userStorage->save([
@@ -95,7 +93,7 @@ $ok = $userStorage->save([
 ]);
 
 ```
-#### Updating.
+#### Update by condition.
 ```php
 $numberOfupdated = $userStorage
     ->sort(['id' => -1])// Sorting by `id` in descending order
@@ -103,7 +101,7 @@ $numberOfupdated = $userStorage
     ->update(['career' => 'actor']);
 ```
 
-#### Deleting.
+#### Delete by condition.
 ```php
 $numberOfDeleted = $userStorage
     ->filter(['age' => 18, 'rating' => 5])
