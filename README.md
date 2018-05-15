@@ -74,12 +74,25 @@ $users = $userStorage
 ```
 
 #### Insering
+Insert one row
 ```php
 $ok = $userStorage->save(['name' => ]);
 ```
-#### Upsert
+#### Multiple insert
+Insert multiple rows
 ```php
-$ok = $userStorage->save(['id' => 6, 'name' => 'Mark Ruffalo']);
+$ok = $userStorage->save([
+    ['name' => 'Mark Rufallo'],
+    ['name' => 'Chris Evans', 'rating' => 4.95],
+]);
+```
+#### Upsert
+Update if exists, otherwise insert
+```php
+$ok = $userStorage->save([
+    ['id' => 6, 'name' => 'Mark Ruffalo'],// This data will be updated, because 'id' is the primary key
+    ['name' => 'Chris Hemsworth'] // This data will be inserted as new row
+]);
 
 ```
 #### Updating.
