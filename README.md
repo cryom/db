@@ -1,6 +1,9 @@
 # vivace\db
 
-_ORM_, relations, query builder, aliases.
+[![Latest Stable Version](https://poser.pugx.org/vivace/db/v/stable)](https://packagist.org/packages/vivace/db)
+[![Total Downloads](https://poser.pugx.org/vivace/db/downloads)](https://packagist.org/packages/vivace/db)
+[![License](https://poser.pugx.org/vivace/db/license)](https://packagist.org/packages/vivace/db)
+[![composer.lock](https://poser.pugx.org/vivace/db/composerlock)](https://packagist.org/packages/vivace/db)
 ## Goals
 
 Create a simply orm with relationship support and flexible query builder and nothing more.
