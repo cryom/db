@@ -76,7 +76,7 @@ $users = $userStorage
 #### Insert/Update
 Insert one row
 ```php
-$ok = $userStorage->save(['name' => ]);
+$ok = $userStorage->save(['name' => 'Mark Rufallo']);
 ```
 Multiple rows
 ```php
