@@ -4,6 +4,7 @@
 [![Total Downloads](https://poser.pugx.org/vivace/db/downloads)](https://packagist.org/packages/vivace/db)
 [![License](https://poser.pugx.org/vivace/db/license)](https://packagist.org/packages/vivace/db)
 [![composer.lock](https://poser.pugx.org/vivace/db/composerlock)](https://packagist.org/packages/vivace/db)
+[![Maintainability](https://api.codeclimate.com/v1/badges/996b9318332fb25f58e0/maintainability)](https://codeclimate.com/github/php-vivace/db/maintainability)
 ## Goals
 
 Create a simply orm with relationship support and flexible query builder and nothing more.
