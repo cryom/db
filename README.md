@@ -16,6 +16,7 @@ Create a flexible query builder with relationship support and CRUD operations.
 
 - [x] PostgreSQL __>=9.5__
 - [x] MySQL __>= 5.7__
+- [ ] MongoDB (planned)
 
 ## Installing
 
@@ -67,6 +68,7 @@ $ok = $userStorage->save($user);
 ```php
 $users = $userStorage
     ->limit(100)
+    // equalent SQL condition "career IN ('actor', 'producer') OR age >= 40"
     ->filter(['or', ['in', 'career', ['actor', 'producer'], ['>=', 'age', 40]])
     ->fetch();
 ```
@@ -93,6 +95,7 @@ $numberOfupdated = $userStorage
 $numberOfDeleted = $userStorage
     ->filter(['age' => 18, 'rating' => 5])
     ->and(['in', 'career', ['actor', 'producer'])
+    // Delete all users by condition "age = 18 AND rating = 5 AND career IN ('actor', 'producer')"
     ->delete();
 ```
 
