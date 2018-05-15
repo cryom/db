@@ -1,10 +1,9 @@
 # vivace\db
 
-_ORM_ with relationship support and a advanced query builder.
+_ORM_, relations, query builder, aliases.
 ## Goals
 
-Create a simply orm with relation and flexible query builder and nothing more.
-It not a ActiveRecord.
+Create a simply orm with relationship support and flexible query builder and nothing more.
 
 ## Requirements
 - php __>= 7.1__
@@ -57,7 +56,7 @@ And save changes in storage.
 $ok = $userStorage->save($user);
 ```
 
-### More examples.
+## More examples.
 
 
 #### Filtering.
