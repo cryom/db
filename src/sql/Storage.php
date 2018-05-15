@@ -69,7 +69,7 @@ class Storage implements \vivace\db\Storage
      * @return Finder
      * @throws \Exception
      */
-    public function filter(array $filter)
+    public function filter(?array $filter)
     {
         return $this->find()->filter($filter);
     }
@@ -80,7 +80,7 @@ class Storage implements \vivace\db\Storage
      * @return Finder
      * @throws \Exception
      */
-    public function limit(int $value)
+    public function limit(?int $value)
     {
         return $this->find()->limit($value);
     }
@@ -91,7 +91,7 @@ class Storage implements \vivace\db\Storage
      */
     public function find()
     {
-        if (!$this->projection) {
+        if (empty($this->projection)) {
             $this->projection = $this->getDefaultProjection();
         }
         $finder = new Finder($this, $this->projection);
@@ -114,7 +114,7 @@ class Storage implements \vivace\db\Storage
      * @return \vivace\db\Finder|\vivace\db\sql\Finder
      * @throws \Exception
      */
-    public function skip(int $value)
+    public function skip(?int $value)
     {
         return $this->find()->skip($value);
     }
@@ -125,7 +125,7 @@ class Storage implements \vivace\db\Storage
      * @return \vivace\db\Finder|\vivace\db\sql\Finder
      * @throws \Exception
      */
-    public function sort(array $sort)
+    public function sort(?array $sort)
     {
         return $this->find()->sort($sort);
     }
@@ -177,11 +177,7 @@ class Storage implements \vivace\db\Storage
         return $this->find()->count();
     }
 
-    /**
-     * @param array $data
-     *
-     * @return bool
-     */
+    /** @inheritdoc */
     public function save(array $data): bool
     {
         $columns = [];
