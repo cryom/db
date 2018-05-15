@@ -4,8 +4,6 @@
 [![Total Downloads](https://poser.pugx.org/vivace/db/downloads)](https://packagist.org/packages/vivace/db)
 [![License](https://poser.pugx.org/vivace/db/license)](https://packagist.org/packages/vivace/db)
 [![composer.lock](https://poser.pugx.org/vivace/db/composerlock)](https://packagist.org/packages/vivace/db)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/php-vivace/db/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/php-vivace/db/?branch=master)
-[![Build Status](https://scrutinizer-ci.com/g/php-vivace/db/badges/build.png?b=master)](https://scrutinizer-ci.com/g/php-vivace/db/build-status/master)
 ## Goals
 
 Create a simply orm with relationship support and flexible query builder and nothing more.
