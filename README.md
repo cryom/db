@@ -71,20 +71,38 @@ $users = $userStorage
     ->fetch();
 ```
 
+#### Insering
+```php
+$ok = $userStorage->save(['name' => ]);
+```
+#### Upsert
+```php
+$ok = $userStorage->save(['id' => 6, 'name' => 'Mark Ruffalo']);
 
+```
 #### Updating.
 ```php
-$ok = $userStorage
+$numberOfupdated = $userStorage
     ->sort(['id' => -1])// Sorting by `id` in descending order
     ->skip(100)// skip first 100 found rows
     ->update(['career' => 'actor']);
 ```
 
+#### Deleting.
+```php
+$numberOfDeleted = $userStorage
+    ->filter(['age' => 18, 'rating' => 5])
+    ->and(['in', 'career', ['actor', 'producer'])
+    ->delete();
+```
 
 #### Relations.
 ```php
 $userStorage = $userStorage->projection([
-    'country' => new \vivace\Relation\Single($countryStorage, ['country_id' => 'id'])
+    // OneToOne
+    'country' => new \vivace\Relation\Single($countryStorage, ['country_id' => 'id']),
+    // OneToMany
+    'rewards' => new \vivace\Relation\Many($rewardsStorage, ['id' => 'user_id'])
 ]);
 
 $users = $userStorage->fetch()->all();
@@ -92,6 +110,9 @@ $users = $userStorage->fetch()->all();
 foreach($users as $user){
     if(isset($user['country'])) {
         var_dump($user['country']);
+    }
+    foreach($user['rewards'] as $reward){
+        var_dump($reward);        
     }
 }
 
